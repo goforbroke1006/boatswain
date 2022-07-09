@@ -11,7 +11,7 @@ type block struct {
 	index        uint64
 	hash         string
 	previousHash string
-	timestamp    uint64
+	timestamp    int64
 	data         string
 }
 
@@ -33,7 +33,7 @@ func genesis() block {
 	b := block{
 		index:        0,
 		previousHash: "",
-		timestamp:    uint64(unix),
+		timestamp:    unix,
 		data:         "Initial Block in the Chain",
 	}
 	b.generateHash()
@@ -52,7 +52,7 @@ func (bc *BlockChain) last() block {
 	return bc.chain[len(bc.chain)-1]
 }
 
-func (bc *BlockChain) Generate(ts uint64, data string) {
+func (bc *BlockChain) Generate(ts int64, data string) {
 	prevHash := bc.last().hash
 	b := block{
 		index:        uint64(len(bc.chain)),

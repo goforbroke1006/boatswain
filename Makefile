@@ -1,3 +1,5 @@
+SERVICE_NAME=boatswain
+
 .PHONY: all
 all: dep gen build test lint
 
@@ -11,7 +13,8 @@ gen:
 
 .PHONY: build
 build:
-	go build ./
+	go build -o "${SERVICE_NAME}-demo" ./cmd/demo/
+	go build -o "${SERVICE_NAME}-chat" ./cmd/chat/
 
 .PHONY: test
 test:
@@ -22,4 +25,4 @@ lint: lint/golang
 
 .PHONY: lint/golang
 lint/golang:
-	golangci-lint run .
+	golangci-lint run
