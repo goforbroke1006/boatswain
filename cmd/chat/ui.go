@@ -122,9 +122,7 @@ func (ui *ChatUI) refreshPeers() {
 	peers := ui.cr.ListPeers()
 
 	// clear is not threadsafe so we need to take the lock.
-	ui.peersList.Lock()
 	ui.peersList.Clear()
-	ui.peersList.Unlock()
 
 	for _, p := range peers {
 		fmt.Fprintln(ui.peersList, shortID(p))
