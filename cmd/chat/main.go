@@ -3,209 +3,130 @@ package main
 import (
 	"bufio"
 	"context"
-	"crypto/rand"
 	"flag"
 	"fmt"
-	"io"
-	"log"
-	mrand "math/rand"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/multiformats/go-multiaddr"
-
-	"github.com/goforbroke1006/boatswain/internal"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
+// DiscoveryInterval is how often we re-publish our mDNS records.
+const DiscoveryInterval = time.Hour
+
+// DiscoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
+const DiscoveryServiceTag = "pubsub-chat-example"
+
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	sourcePort := flag.Int("sp", 0, "Source port number")
-	dest := flag.String("d", "", "Destination multiaddr string")
-	help := flag.Bool("help", false, "Display help")
-	debug := flag.Bool("debug", false, "Debug generates the same node ID on every execution")
-
+	// parse some flags to set our nickname and the room to join
+	nickFlag := flag.String("nick", "", "nickname to use in chat. will be generated if empty")
+	roomFlag := flag.String("room", "awesome-chat-room", "name of chat room to join")
 	flag.Parse()
 
-	if *help {
-		fmt.Printf("This program demonstrates a simple p2p chat application using libp2p\n\n")
-		fmt.Println("Usage: Run './chat -sp <SOURCE_PORT>' where <SOURCE_PORT> can be any port number.")
-		fmt.Println("Now run './chat -d <MULTIADDR>' where <MULTIADDR> is multiaddress of previous listener host.")
+	ctx := context.Background()
 
-		os.Exit(0)
-	}
-
-	// If debug is enabled, use a constant random source to generate the peer ID. Only useful for debugging,
-	// off by default. Otherwise, it uses rand.Reader.
-	var r io.Reader
-	if *debug {
-		// Use the port number as the randomness source.
-		// This will always generate the same host ID on multiple executions, if the same port number is used.
-		// Never do this in production code.
-		r = mrand.New(mrand.NewSource(int64(*sourcePort)))
-	} else {
-		r = rand.Reader
-	}
-
-	h, err := makeHost(*sourcePort, r)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	if *dest == "" {
-		startPeer(ctx, h, handleStream)
-	} else {
-		rw, err := startPeerAndConnect(ctx, h, *dest)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		// Create a thread to read and write data.
-		go writeData(rw)
-		go readData(rw)
-
-	}
-
-	// Wait forever
-	select {}
-}
-
-func makeHost(port int, randomness io.Reader) (host.Host, error) {
-	// Creates a new RSA key pair for this host.
-	prvKey, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, randomness)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	// 0.0.0.0 will listen on any interface device.
-	sourceMultiAddr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
-
-	// libp2p.New constructs a new libp2p Host.
-	// Other options can be added here.
-	return libp2p.New(
-		libp2p.ListenAddrs(sourceMultiAddr),
-		libp2p.Identity(prvKey),
-	)
-}
-
-func startPeer(ctx context.Context, h host.Host, streamHandler network.StreamHandler) {
-	// Set a function as stream handler.
-	// This function is called when a peer connects, and starts a stream with this protocol.
-	// Only applies on the receiving side.
-	h.SetStreamHandler("/chat/1.0.0", streamHandler)
-
-	// Let's get the actual TCP port from our listen multiaddr, in case we're using 0 (default; random available port).
-	var port string
-	for _, la := range h.Network().ListenAddresses() {
-		if p, err := la.ValueForProtocol(multiaddr.P_TCP); err == nil {
-			port = p
-			break
-		}
-	}
-
-	if port == "" {
-		log.Println("was not able to find actual local port")
-		return
-	}
-
-	ip, err := internal.GetPublicIP()
+	// create a new libp2p Host that listens on a random TCP port
+	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("Run './chat -d /ip4/%s/tcp/%v/p2p/%s' on another console.\n", ip, port, h.ID().Pretty())
-	log.Println("Waiting for incoming connection")
-	log.Println()
-}
 
-func startPeerAndConnect(ctx context.Context, h host.Host, destination string) (*bufio.ReadWriter, error) {
-	log.Println("This node's multiaddresses:")
-	for _, la := range h.Addrs() {
-		log.Printf(" - %v\n", la)
-	}
-	log.Println()
-
-	// Turn the destination into a multiaddr.
-	maddr, err := multiaddr.NewMultiaddr(destination)
+	// create a new PubSub service using the GossipSub router
+	ps, err := pubsub.NewGossipSub(ctx, h)
 	if err != nil {
-		log.Println(err)
-		return nil, err
+		panic(err)
 	}
 
-	// Extract the peer ID from the multiaddr.
-	info, err := peer.AddrInfoFromP2pAddr(maddr)
+	// setup local mDNS discovery
+	if err := setupDiscovery(h); err != nil {
+		panic(err)
+	}
+
+	// use the nickname from the cli flag, or a default if blank
+	nick := *nickFlag
+	if len(nick) == 0 {
+		nick = defaultNick(h.ID())
+	}
+
+	// join the room from the cli flag, or the flag default
+	room := *roomFlag
+
+	// join the chat room
+	cr, err := JoinChatRoom(ctx, ps, h.ID(), nick, room)
 	if err != nil {
-		log.Println(err)
-		return nil, err
+		panic(err)
 	}
 
-	// Add the destination's peer multiaddress in the peerstore.
-	// This will be used during connection and stream creation by libp2p.
-	h.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+	//// draw the UI
+	//ui := NewChatUI(cr)
+	//if err = ui.Run(); err != nil {
+	//	printErr("error running text UI: %s", err)
+	//}
 
-	// Start a stream with the destination.
-	// Multiaddress of the destination peer is fetched from the peerstore using 'peerId'.
-	s, err := h.NewStream(context.Background(), info.ID, "/chat/1.0.0")
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	log.Println("Established connection to destination")
-
-	// Create a buffered stream so that read and writes are non blocking.
-	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
-
-	return rw, nil
-}
-
-func handleStream(s network.Stream) {
-	log.Println("Got a new stream!")
-
-	// Create a buffer stream for non blocking read and write.
-	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
-
-	go readData(rw)
-	go writeData(rw)
-
-	// stream 's' will stay open until you close it (or the other side closes it).
-}
-
-func readData(rw *bufio.ReadWriter) {
-	for {
-		str, _ := rw.ReadString('\n')
-
-		if str == "" {
-			return
+	outcome := make(chan string)
+	go func() {
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			//fmt.Print("> ")
+			text, _ := reader.ReadString('\n')
+			text = strings.TrimSpace(text)
+			outcome <- text
 		}
-		if str != "\n" {
-			// Green console colour: 	\x1b[32m
-			// Reset console colour: 	\x1b[0m
-			fmt.Printf("\x1b[32m%s\x1b[0m> ", str)
-		}
-
-	}
-}
-
-func writeData(rw *bufio.ReadWriter) {
-	stdReader := bufio.NewReader(os.Stdin)
+	}()
 
 	for {
-		fmt.Print("> ")
-		sendData, err := stdReader.ReadString('\n')
-		if err != nil {
-			log.Println(err)
-			return
+		select {
+		case m := <-cr.Messages:
+			fmt.Println(m.SenderID, ":", m.SenderNick, ":", m.Message)
+		case out := <-outcome:
+			_ = cr.Publish(out)
 		}
 
-		_, _ = rw.WriteString(fmt.Sprintf("%s\n", sendData))
-		_ = rw.Flush()
 	}
+}
+
+// printErr is like fmt.Printf, but writes to stderr.
+func printErr(m string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, m, args...)
+}
+
+// defaultNick generates a nickname based on the $USER environment variable and
+// the last 8 chars of a peer ID.
+func defaultNick(p peer.ID) string {
+	return fmt.Sprintf("%s-%s", os.Getenv("USER"), shortID(p))
+}
+
+// shortID returns the last 8 chars of a base58-encoded peer id.
+func shortID(p peer.ID) string {
+	pretty := p.Pretty()
+	return pretty[len(pretty)-8:]
+}
+
+// discoveryNotifee gets notified when we find a new peer via mDNS discovery
+type discoveryNotifee struct {
+	h host.Host
+}
+
+// HandlePeerFound connects to peers discovered via mDNS. Once they're connected,
+// the PubSub system will automatically start interacting with them if they also
+// support PubSub.
+func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
+	fmt.Printf("discovered new peer %s\n", pi.ID.Pretty())
+	err := n.h.Connect(context.Background(), pi)
+	if err != nil {
+		fmt.Printf("error connecting to peer %s: %s\n", pi.ID.Pretty(), err)
+	}
+}
+
+// setupDiscovery creates an mDNS discovery service and attaches it to the libp2p Host.
+// This lets us automatically discover peers on the same LAN and connect to them.
+func setupDiscovery(h host.Host) error {
+	// setup mDNS discovery to find local peers
+	s := mdns.NewMdnsService(h, DiscoveryServiceTag, &discoveryNotifee{h: h})
+	return s.Start()
 }
