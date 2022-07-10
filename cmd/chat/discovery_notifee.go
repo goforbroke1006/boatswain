@@ -9,6 +9,10 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
+func NewNotifee(h host.Host) mdns.Notifee {
+	return &discoveryNotifee{h: h}
+}
+
 var _ mdns.Notifee = &discoveryNotifee{}
 
 // discoveryNotifee gets notified when we find a new peer via mDNS discovery
@@ -25,12 +29,4 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	if err != nil {
 		fmt.Printf("error connecting to peer %s: %s\n", pi.ID.Pretty(), err)
 	}
-}
-
-// setupDiscovery creates an mDNS discovery service and attaches it to the libp2p Host.
-// This lets us automatically discover peers on the same LAN and connect to them.
-func setupDiscovery(h host.Host) error {
-	// setup mDNS discovery to find local peers
-	s := mdns.NewMdnsService(h, DiscoveryServiceTag, &discoveryNotifee{h: h})
-	return s.Start()
 }

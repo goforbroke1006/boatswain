@@ -3,17 +3,15 @@ package main
 import (
 	"context"
 	"flag"
-	"time"
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
-// DiscoveryInterval is how often we re-publish our mDNS records.
-const DiscoveryInterval = time.Hour
+// discoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
+const discoveryServiceTag = "pubsub-chat-example"
 
-// DiscoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
-const DiscoveryServiceTag = "pubsub-chat-example"
+const allInterfacesAnyFreePortMA = "/ip4/0.0.0.0/tcp/0"
 
 func main() {
 	// parse some flags to set our nickname and the room to join
@@ -24,7 +22,7 @@ func main() {
 	ctx := context.Background()
 
 	// create a new libp2p Host that listens on a random TCP port
-	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
+	h, err := libp2p.New(libp2p.ListenAddrStrings(allInterfacesAnyFreePortMA))
 	if err != nil {
 		panic(err)
 	}
@@ -36,9 +34,11 @@ func main() {
 	}
 
 	// setup local mDNS discovery
-	if err := setupDiscovery(h); err != nil {
+	discovery := NewDiscovery(h, discoveryServiceTag)
+	if err := discovery.Start(); err != nil {
 		panic(err)
 	}
+	defer func() { _ = discovery.Close() }()
 
 	// use the nickname from the cli flag, or a default if blank
 	nick := *nickFlag
