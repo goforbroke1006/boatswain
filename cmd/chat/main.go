@@ -55,7 +55,7 @@ func main() {
 		panic(err)
 	}
 
-	//// draw the UI
+	// draw the UI
 	ui := NewChatUI(cr)
 	if err = ui.Run(); err != nil {
 		printErr("error running text UI: %s", err)
