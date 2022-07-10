@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -27,6 +26,8 @@ type ChatRoom struct {
 	roomName string
 	self     peer.ID
 	nick     string
+
+	onMessageCb func(message pubsub.Message)
 }
 
 // ChatMessage gets converted to/from JSON and sent in the body of pubsub messages.
@@ -38,7 +39,14 @@ type ChatMessage struct {
 
 // JoinChatRoom tries to subscribe to the PubSub topic for the room name, returning
 // a ChatRoom on success.
-func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, nickname string, roomName string) (*ChatRoom, error) {
+func JoinChatRoom(
+	ctx context.Context,
+	ps *pubsub.PubSub,
+	selfID peer.ID,
+	nickname string,
+	roomName string,
+	onMessageCb func(message pubsub.Message),
+) (*ChatRoom, error) {
 	// join the pubsub topic
 	topic, err := ps.Join(topicName(roomName))
 	if err != nil {
@@ -52,14 +60,15 @@ func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, nickna
 	}
 
 	cr := &ChatRoom{
-		ctx:      ctx,
-		ps:       ps,
-		topic:    topic,
-		sub:      sub,
-		self:     selfID,
-		nick:     nickname,
-		roomName: roomName,
-		Messages: make(chan *ChatMessage, ChatRoomBufSize),
+		ctx:         ctx,
+		ps:          ps,
+		topic:       topic,
+		sub:         sub,
+		self:        selfID,
+		nick:        nickname,
+		roomName:    roomName,
+		Messages:    make(chan *ChatMessage, ChatRoomBufSize),
+		onMessageCb: onMessageCb,
 	}
 
 	// start reading messages from the subscription in a loop
@@ -92,6 +101,10 @@ func (cr *ChatRoom) readLoop() {
 		if err != nil {
 			close(cr.Messages)
 			return
+		}
+
+		if cr.onMessageCb != nil {
+			cr.onMessageCb(*msg)
 		}
 		// only forward messages delivered by others
 		if msg.ReceivedFrom == cr.self {

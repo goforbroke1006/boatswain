@@ -11,5 +11,6 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.7.0 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.7.1
 	github.com/libp2p/go-libp2p-swarm v0.11.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.14
 	github.com/rivo/tview v0.0.0-20220307222120-9994674d60a8
 )

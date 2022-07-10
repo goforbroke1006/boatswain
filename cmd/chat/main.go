@@ -2,10 +2,17 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
+	"io/ioutil"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	_ "github.com/mattn/go-sqlite3"
+
+	"github.com/goforbroke1006/boatswain/internal/blockchain"
+	"github.com/goforbroke1006/boatswain/internal/storage"
 )
 
 // discoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
@@ -49,8 +56,25 @@ func main() {
 	// join the room from the cli flag, or the flag default
 	room := *roomFlag
 
+	db, err := sql.Open("sqlite3", "./chat-blocks.db")
+	if err != nil {
+		panic(err)
+	}
+	schemaQuery, err := ioutil.ReadFile("./schema.sql")
+	if err != nil {
+		panic(err)
+	}
+	if _, err := db.Exec(string(schemaQuery)); err != nil {
+		panic(err)
+	}
+	blockStorage := storage.NewBlockStorage(db)
+	chain := blockchain.NewBlockChain(blockStorage)
+
+	messageCb := func(message pubsub.Message) {
+		_ = chain.Generate(time.Now().Unix(), string(message.Data))
+	}
 	// join the chat room
-	cr, err := JoinChatRoom(ctx, ps, h.ID(), nick, room)
+	cr, err := JoinChatRoom(ctx, ps, h.ID(), nick, room, messageCb)
 	if err != nil {
 		panic(err)
 	}
