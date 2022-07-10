@@ -14,6 +14,17 @@ Learning blockchain technology project.
 
 ```shell
 make
-./boatswain
+./boatswain-demo
 
+```
+
+### Chat
+
+Chat application on libp2p.PubSub.
+
+It will use blockchain soon to keep messages history.
+
+```shell
+make
+./boatswain-chat
 ```
