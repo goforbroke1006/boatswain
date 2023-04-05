@@ -1,11 +1,11 @@
-package main
+package chat
 
 import (
 	"context"
 	"encoding/json"
-	"github.com/libp2p/go-libp2p-core/peer"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // ChatRoomBufSize is the number of incoming messages to buffer for each topic.

@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -13,7 +13,7 @@ func GetPublicIP() (string, error) {
 
 	defer func() { _ = resp.Body.Close() }()
 
-	content, err := ioutil.ReadAll(resp.Body)
+	content, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

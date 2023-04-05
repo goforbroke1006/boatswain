@@ -1,24 +1,22 @@
 SERVICE_NAME=boatswain
 
 .PHONY: all
-all: dep gen build test lint
+all: prepare build test lint
 
-.PHONY: dep
-dep:
+.PHONY: prepare
+prepare:
+	go mod tidy
 	go mod download
-
-.PHONY: gen
-gen:
 	go generate ./...
+	go mod tidy
 
 .PHONY: build
 build:
-	go build -o "${SERVICE_NAME}-demo" ./cmd/demo/
-	go build -o "${SERVICE_NAME}-chat" ./cmd/chat/
+	go build -o "${SERVICE_NAME}" .
 
 .PHONY: test
 test:
-	go test -race ./...
+	go test -short ./...
 
 .PHONY: lint
 lint: lint/golang

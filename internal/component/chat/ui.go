@@ -1,7 +1,8 @@
-package main
+package chat
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"time"
 
@@ -158,7 +159,7 @@ func (ui *ChatUI) handleEvents() {
 			// when the user types in a line, publish it to the chat room and print to the message window
 			err := ui.cr.Publish(input)
 			if err != nil {
-				printErr("publish error: %s", err)
+				zap.L().Error("publish fail", zap.Error(err))
 			}
 			ui.displaySelfMessage(input)
 

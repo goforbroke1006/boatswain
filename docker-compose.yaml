@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+
+  chat-member-001:
+    image: golang:1.10-alpine
+    command:
+      - run
+      - main.go
+      - dapp
+      - chat
+    working_dir: /code/
+    volumes:
+      - .:/code/

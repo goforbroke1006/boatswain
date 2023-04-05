@@ -2,7 +2,7 @@
 
 Learning blockchain technology project.
 
-![logo](./logo.png)
+![logo](./docs/logo.png)
 
 ### Requirements
 
@@ -14,17 +14,6 @@ Learning blockchain technology project.
 
 ```shell
 make
-./boatswain-demo
+./boatswain dapp chat
 
-```
-
-### Chat
-
-Chat application on libp2p.PubSub.
-
-It will use blockchain soon to keep messages history.
-
-```shell
-make
-./boatswain-chat
 ```
