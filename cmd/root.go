@@ -8,12 +8,9 @@ import (
 )
 
 var (
-	rootCmd = &cobra.Command{
-		Use: "boatswain",
-	}
-	dappCmd = &cobra.Command{
-		Use: "dapp",
-	}
+	rootCmd = &cobra.Command{Use: "boatswain"}
+	dappCmd = &cobra.Command{Use: "dapp"}
+	utilCmd = &cobra.Command{Use: "util"}
 )
 
 func Execute() {

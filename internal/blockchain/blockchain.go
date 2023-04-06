@@ -22,34 +22,22 @@ func NewBlockChain(storage domain.BlockStorage) domain.BlockChain {
 var _ domain.BlockChain = &blockChain{}
 
 type blockChain struct {
-	chain   []domain.Block
+	chain   []*domain.Block
 	storage domain.BlockStorage
-}
-
-func (bc *blockChain) Empty() bool {
-	return len(bc.chain) <= 1
 }
 
 func (bc *blockChain) start() {
 	bc.chain = append(bc.chain, genesis())
 }
 
-func (bc *blockChain) last() domain.Block {
+func (bc *blockChain) last() *domain.Block {
 	return bc.chain[len(bc.chain)-1]
 }
 
-func (bc *blockChain) Generate(ts int64, data string) error {
-	prevHash := bc.last().Hash
-	b := domain.Block{
-		Index:        uint64(len(bc.chain)),
-		PreviousHash: prevHash,
-		Timestamp:    ts,
-		Data:         data,
-	}
-	b.GenerateHash()
-	bc.chain = append(bc.chain, b)
+func (bc *blockChain) Append(block *domain.Block) error {
+	bc.chain = append(bc.chain, block)
 
-	err := bc.storage.Store(b)
+	err := bc.storage.Store(block)
 	if err != nil {
 		bc.chain = bc.chain[:len(bc.chain)-1]
 		return err
@@ -58,23 +46,12 @@ func (bc *blockChain) Generate(ts int64, data string) error {
 	return nil
 }
 
-func (bc blockChain) GetBlocks() []domain.Block {
+func (bc *blockChain) GetBlocks() []*domain.Block {
 	return bc.chain
 }
 
-func (bc *blockChain) Verify() error {
-	// TODO implement me
-	return nil
-}
-
-func genesis() domain.Block {
+func genesis() *domain.Block {
 	unix := time.Date(2022, time.July, 2, 0, 0, 0, 0, time.UTC).Unix()
-	b := domain.Block{
-		Index:        0,
-		PreviousHash: "",
-		Timestamp:    unix,
-		Data:         "Initial Block in the Chain",
-	}
-	b.GenerateHash()
+	b := domain.NewBlock(0, "", unix, []byte("Initial Block in the Chain"))
 	return b
 }

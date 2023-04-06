@@ -1,26 +1,26 @@
 SERVICE_NAME=boatswain
 
-.PHONY: all
 all: prepare build test lint
+.PHONY: all
 
-.PHONY: prepare
 prepare:
 	go mod tidy
 	go mod download
 	go generate ./...
 	go mod tidy
+.PHONY: prepare
 
-.PHONY: build
 build:
 	go build -o "${SERVICE_NAME}" .
+.PHONY: build
 
-.PHONY: test
 test:
 	go test -short ./...
+.PHONY: test
 
-.PHONY: lint
 lint: lint/golang
+.PHONY: lint
 
-.PHONY: lint/golang
 lint/golang:
 	golangci-lint run
+.PHONY: lint/golang
