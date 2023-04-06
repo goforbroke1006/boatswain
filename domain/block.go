@@ -2,7 +2,9 @@ package domain
 
 import (
 	"fmt"
+
 	"github.com/enescakir/emoji"
+
 	"github.com/goforbroke1006/boatswain/internal"
 )
 
