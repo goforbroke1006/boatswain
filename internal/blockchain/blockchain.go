@@ -26,6 +26,11 @@ type blockChain struct {
 	storage domain.BlockStorage
 }
 
+func (bc *blockChain) Verify(block *domain.Block) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (bc *blockChain) start() {
 	bc.chain = append(bc.chain, genesis())
 }

@@ -1,4 +1,4 @@
-package chat
+package discovery
 
 import (
 	"context"

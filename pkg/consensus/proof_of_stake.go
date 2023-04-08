@@ -16,7 +16,12 @@ type ProofOfStake struct {
 	pool      map[domain.BlockIndex]map[domain.BlockHash]map[string]struct{}
 }
 
-func (p ProofOfStake) Append(block *domain.Block, peerCode string) {
+func (p ProofOfStake) Verify(vote *domain.ConsensusVotePayload) error {
+	// TODO: implement me
+	return nil
+}
+
+func (p ProofOfStake) Append(vote *domain.ConsensusVotePayload) {
 	if _, hasBlock := p.blocksMap[block.Hash()]; !hasBlock {
 		p.blocksMap[block.Hash()] = block
 	}
@@ -31,7 +36,7 @@ func (p ProofOfStake) Append(block *domain.Block, peerCode string) {
 	p.pool[block.Index()][block.Hash()][peerCode] = struct{}{}
 }
 
-func (p ProofOfStake) MakeDecision(id domain.BlockIndex) (*domain.Block, error) {
+func (p ProofOfStake) MakeDecision(id domain.BlockIndex) (*domain.ConsensusVotePayload, error) {
 	var (
 		hash       domain.BlockHash
 		peersCount = 0

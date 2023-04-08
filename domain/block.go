@@ -3,14 +3,17 @@ package domain
 import (
 	"fmt"
 
-	"github.com/enescakir/emoji"
-
 	"github.com/goforbroke1006/boatswain/internal"
 )
 
-func NewBlock(index BlockIndex, previousHash BlockHash, timestamp int64, data []byte) *Block {
-	hash := internal.GetSHA256(fmt.Sprintf("%d%s%d%s",
-		index, previousHash, timestamp, string(data)))
+func NewBlock(index BlockIndex, previousHash BlockHash, timestamp int64, data []TransactionPayload) *Block {
+	hashContent := fmt.Sprintf("%d-%s-%d", index, previousHash, timestamp)
+	for _, txp := range data {
+		hashContent += fmt.Sprintf("--%s-%s-%d-%s",
+			txp.ID.String(), txp.PeerSender, txp.Timestamp, internal.GetSHA256(txp.Content))
+	}
+
+	hash := internal.GetSHA256(hashContent)
 
 	return &Block{
 		Index:        index,
@@ -26,15 +29,7 @@ type Block struct {
 	Hash         BlockHash
 	PreviousHash BlockHash
 	Timestamp    int64
-	Data         []byte
-}
-
-func (b *Block) String() string {
-	return fmt.Sprintf("%v: %d %v: %s %v: %d %v: %s",
-		emoji.InputNumbers, b.Index,
-		emoji.Locked, b.Hash,
-		emoji.OneOClock, b.Timestamp,
-		emoji.Clipboard, string(b.Data))
+	Data         []TransactionPayload
 }
 
 type BlockStorage interface {

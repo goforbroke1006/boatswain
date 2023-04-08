@@ -1,19 +1,23 @@
-package pubsub
+package messaging
 
 import (
 	"context"
 	"encoding/json"
+
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-func NewStream[T any](
+// NewStreamIn creates abstraction
+// to read data from p2p pub-sub,
+// unmarshall it, and provide as <-chan *T.
+// Use generic to customize format of payload.
+func NewStreamIn[T any](
 	ctx context.Context,
 	topicName string,
 	pubSub *pubsub.PubSub,
 	selfID peer.ID,
-	ignoreSelf bool,
-) (*Stream[T], error) {
+) (*StreamIn[T], error) {
 	topic, topicErr := pubSub.Join(topicName)
 	if topicErr != nil {
 		return nil, topicErr
@@ -24,31 +28,36 @@ func NewStream[T any](
 		return nil, subErr
 	}
 
-	return &Stream[T]{
+	s := &StreamIn[T]{
 		ctx:          ctx,
 		pubSub:       pubSub,
 		topic:        topic,
 		subscription: subscription,
 		selfID:       selfID,
-		ignoreSelf:   ignoreSelf,
-	}, nil
+
+		inCh: make(chan *T, 128),
+	}
+
+	go s.readLoop()
+
+	return s, nil
 }
 
-type Stream[T any] struct {
+type StreamIn[T any] struct {
 	ctx          context.Context
 	pubSub       *pubsub.PubSub
 	topic        *pubsub.Topic
 	subscription *pubsub.Subscription
 	selfID       peer.ID
-	ignoreSelf   bool
-	out          chan *T
+
+	inCh chan *T
 }
 
-func (s Stream[T]) Out() <-chan *T {
-	return s.out
+func (s StreamIn[T]) In() <-chan *T {
+	return s.inCh
 }
 
-func (s Stream[T]) readLoop() {
+func (s StreamIn[T]) readLoop() {
 	for {
 		msg, err := s.subscription.Next(s.ctx)
 		if err != nil {
@@ -56,7 +65,7 @@ func (s Stream[T]) readLoop() {
 		}
 
 		// only forward messages delivered by others
-		if s.ignoreSelf && msg.ReceivedFrom == s.selfID {
+		if msg.ReceivedFrom == s.selfID {
 			continue
 		}
 		obj := new(T)
@@ -67,6 +76,6 @@ func (s Stream[T]) readLoop() {
 			continue
 		}
 		// send valid messages onto the Messages channel
-		s.out <- obj
+		s.inCh <- obj
 	}
 }

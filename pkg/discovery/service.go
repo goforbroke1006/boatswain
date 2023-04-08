@@ -1,4 +1,4 @@
-package chat
+package discovery
 
 import (
 	"github.com/libp2p/go-libp2p/core/host"
