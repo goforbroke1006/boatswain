@@ -39,7 +39,7 @@ func NewDAppChat() *cobra.Command {
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 
-			// create a new libp2p Host that listens on a random TCP port
+			// create a new p2p Host that listens on a random TCP port
 			p2pHost, p2pHostErr := libp2p.New(libp2p.ListenAddrStrings(allInterfacesAnyFreePortMA))
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
@@ -61,21 +61,25 @@ func NewDAppChat() *cobra.Command {
 			// TODO: validate room name
 			chatTopic := fmt.Sprintf("chat/%s", roomArg)
 
-			msgStreamIn, msgStreamInErr := messaging.NewStreamIn[domain.TransactionPayload](ctx, chatTopic, p2pPubSub, p2pHost.ID())
+			msgStreamIn, msgStreamInErr := messaging.NewStreamIn[domain.TransactionPayload](
+				ctx, chatTopic, p2pPubSub, p2pHost.ID(), false)
 			if msgStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(msgStreamInErr))
 			}
-			msgStreamOut, msgStreamOutErr := messaging.NewStreamOut[domain.TransactionPayload](ctx, chatTopic, p2pPubSub)
+			msgStreamOut, msgStreamOutErr := messaging.NewStreamOut[domain.TransactionPayload](
+				ctx, chatTopic, p2pPubSub)
 			if msgStreamOutErr != nil {
 				zap.L().Fatal("fail", zap.Error(msgStreamOutErr))
 			}
 
-			txStreamOut, txStreamOutErr := messaging.NewStreamOut[domain.TransactionPayload](ctx, transactionTopic, p2pPubSub)
+			txStreamOut, txStreamOutErr := messaging.NewStreamOut[domain.TransactionPayload](
+				ctx, transactionTopic, p2pPubSub)
 			if txStreamOutErr != nil {
 				zap.L().Fatal("fail", zap.Error(txStreamOutErr))
 			}
 
-			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[domain.ReconciliationPayload](ctx, reconciliationTopic, p2pPubSub, p2pHost.ID())
+			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[domain.ReconciliationPayload](
+				ctx, reconciliationTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconStreamInErr))
 			}
@@ -86,21 +90,6 @@ func NewDAppChat() *cobra.Command {
 					panic(runErr)
 				}
 			}()
-
-			// TODO: use in chat window
-			_ = historyMixer
-			_ = msgStreamOut
-			_ = txStreamOut
-
-			//// join the chat room
-			//cr, err := chat.JoinChatRoom(ctx, p2pHost.ID(),
-			//	nickArg, roomArg,
-			//	historyMixer,
-			//	msgStreamOut.Out(),
-			//	txStreamOut.Out())
-			//if err != nil {
-			//	zap.L().Fatal("join chat room fail", zap.Error(err))
-			//}
 
 			// draw the UI
 			ui := chat.NewChatUI(
