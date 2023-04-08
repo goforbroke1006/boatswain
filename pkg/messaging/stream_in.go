@@ -17,6 +17,7 @@ func NewStreamIn[T any](
 	topicName string,
 	pubSub *pubsub.PubSub,
 	selfID peer.ID,
+	ignoreSelf bool,
 ) (*StreamIn[T], error) {
 	topic, topicErr := pubSub.Join(topicName)
 	if topicErr != nil {
@@ -33,7 +34,9 @@ func NewStreamIn[T any](
 		pubSub:       pubSub,
 		topic:        topic,
 		subscription: subscription,
-		selfID:       selfID,
+
+		selfID:     selfID,
+		ignoreSelf: ignoreSelf,
 
 		inCh: make(chan *T, 128),
 	}
@@ -48,7 +51,9 @@ type StreamIn[T any] struct {
 	pubSub       *pubsub.PubSub
 	topic        *pubsub.Topic
 	subscription *pubsub.Subscription
-	selfID       peer.ID
+
+	selfID     peer.ID
+	ignoreSelf bool
 
 	inCh chan *T
 }
@@ -65,7 +70,7 @@ func (s StreamIn[T]) readLoop() {
 		}
 
 		// only forward messages delivered by others
-		if msg.ReceivedFrom == s.selfID {
+		if s.ignoreSelf && msg.ReceivedFrom == s.selfID {
 			continue
 		}
 		obj := new(T)

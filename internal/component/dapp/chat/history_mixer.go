@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -50,7 +51,9 @@ func (hm *HistoryMixer) Run(ctx context.Context) error {
 			// TODO: replace all between min-max
 			_ = recon
 
-			hm.cache = hm.cache[len(hm.cache)-int(hm.limit):] // leave N last messages
+			if len(hm.cache) > int(hm.limit) {
+				hm.cache = hm.cache[len(hm.cache)-int(hm.limit):] // leave N last messages
+			}
 			hm.cacheMx.Unlock()
 
 		case msg, msgOpen := <-hm.msgCh:
@@ -62,8 +65,13 @@ func (hm *HistoryMixer) Run(ctx context.Context) error {
 
 			hm.cache = append(hm.cache, msg)
 			// TODO: sort messages by timestamp ASC
+			sort.Slice(hm.cache, func(i, j int) bool {
+				return hm.cache[i].Timestamp < hm.cache[j].Timestamp
+			})
 
-			hm.cache = hm.cache[len(hm.cache)-int(hm.limit):] // leave N last messages
+			if len(hm.cache) > int(hm.limit) {
+				hm.cache = hm.cache[len(hm.cache)-int(hm.limit):] // leave N last messages
+			}
 			hm.cacheMx.Unlock()
 		}
 	}

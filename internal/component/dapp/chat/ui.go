@@ -64,7 +64,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case <-time.After(5 * time.Second):
-				history, _ := ui.historyMixer.History()
+				history := ui.historyMixer.History()
 				msgBox.Clear()
 				for _, item := range history {
 					color := "red"
