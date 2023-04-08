@@ -34,5 +34,5 @@ type Block struct {
 
 type BlockStorage interface {
 	Store(b *Block) error
-	Load() ([]*Block, error)
+	LoadLastN(length uint64) ([]*Block, error)
 }

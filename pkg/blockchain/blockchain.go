@@ -10,7 +10,7 @@ func NewBlockChain(storage domain.BlockStorage) domain.BlockChain {
 	bc := &blockChain{storage: storage}
 	bc.start()
 
-	blocks, err := storage.Load()
+	blocks, err := storage.LoadLastN()
 	if err != nil {
 		panic(err)
 	}

@@ -22,14 +22,17 @@ func (s blockStorage) Store(b *domain.Block) error {
 	return err
 }
 
-func (s blockStorage) Load() ([]*domain.Block, error) {
-	rows, err := s.db.Query(`
+func (s blockStorage) LoadLastN(length uint64) ([]*domain.Block, error) {
+	rows, rowsErr := s.db.Query(`
 	SELECT 
 	    "index", "hash", "previous_hash", "timestamp", "data" 
 	FROM blocks 
-	ORDER BY "index"`)
-	if err != nil {
-		return nil, err
+	ORDER BY "index" 
+	LIMIT ?`,
+		length,
+	)
+	if rowsErr != nil {
+		return nil, rowsErr
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -56,6 +59,10 @@ func (s blockStorage) Load() ([]*domain.Block, error) {
 			Data:         []byte(data),
 		}
 		result = append(result, b)
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 
 	return result, nil

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"github.com/goforbroke1006/boatswain/pkg/blockchain"
 	"os"
 	"os/signal"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/goforbroke1006/boatswain/domain"
 	"github.com/goforbroke1006/boatswain/internal/common"
 	"github.com/goforbroke1006/boatswain/internal/storage"
+	"github.com/goforbroke1006/boatswain/pkg/blockchain"
 	"github.com/goforbroke1006/boatswain/pkg/consensus"
 	"github.com/goforbroke1006/boatswain/pkg/discovery"
 	"github.com/goforbroke1006/boatswain/pkg/messaging"
@@ -82,6 +82,17 @@ func NewNode() *cobra.Command {
 
 			blockStorage := storage.NewBlockStorage(db)
 			chain := blockchain.NewBlockChain(blockStorage)
+
+			syncer := blockchain.NewSyncer(chain, blockStorage)
+			if syncErr := syncer.Init(ctx); syncErr != nil {
+				zap.L().Fatal("fail", zap.Error(syncErr))
+			}
+			go func() {
+				if runErr := syncer.Run(ctx); runErr != nil {
+					zap.L().Fatal("fail", zap.Error(runErr))
+				}
+			}()
+
 			pos := consensus.NewProofOfStake()
 
 			go func() {
