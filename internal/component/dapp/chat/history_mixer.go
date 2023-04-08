@@ -13,7 +13,7 @@ import (
 func NewHistoryMixer(
 	limit uint,
 	msgCh <-chan *domain.TransactionPayload,
-	reconCh <-chan *domain.ReconciliationPayload,
+	reconCh <-chan *domain.ReconciliationResp,
 ) *HistoryMixer {
 	hm := &HistoryMixer{
 		limit:   limit,
@@ -27,7 +27,7 @@ func NewHistoryMixer(
 type HistoryMixer struct {
 	limit   uint
 	msgCh   <-chan *domain.TransactionPayload
-	reconCh <-chan *domain.ReconciliationPayload
+	reconCh <-chan *domain.ReconciliationResp
 
 	cache   []*domain.TransactionPayload
 	cacheMx sync.RWMutex

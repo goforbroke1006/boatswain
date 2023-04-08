@@ -21,9 +21,10 @@ import (
 
 func NewNode() *cobra.Command {
 	const (
-		transactionTopic    = "boatswain/transaction"
-		consensusVoteTopic  = "boatswain/consensus-vote"
-		reconciliationTopic = "boatswain/reconciliation"
+		transactionTopic        = "boatswain/transaction"
+		consensusVoteTopic      = "boatswain/consensus-vote"
+		reconciliationReqTopic  = "boatswain/reconciliation/req"
+		reconciliationRespTopic = "boatswain/reconciliation/resp"
 
 		// discoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
 		discoveryServiceTag        = "github.com/goforbroke1006/boatswain/node"
@@ -61,37 +62,40 @@ func NewNode() *cobra.Command {
 			}
 			defer func() { _ = db.Close() }()
 
-			txStreamIn, txStreamInErr := messaging.NewStreamIn[domain.TransactionPayload](ctx, transactionTopic, p2pPubSub, p2pHost.ID())
+			txStreamIn, txStreamInErr := messaging.NewStreamIn[domain.TransactionPayload](
+				ctx, transactionTopic, p2pPubSub, p2pHost.ID(), true)
 			if txStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(txStreamInErr))
 			}
 
-			voteStreamIn, voteStreamInErr := messaging.NewStreamIn[domain.ConsensusVotePayload](ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID())
+			voteStreamIn, voteStreamInErr := messaging.NewStreamIn[domain.ConsensusVotePayload](
+				ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID(), true)
 			if voteStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(voteStreamInErr))
 			}
-			voteStreamOut, voteStreamOutErr := messaging.NewStreamOut[domain.ConsensusVotePayload](ctx, consensusVoteTopic, p2pPubSub)
+			voteStreamOut, voteStreamOutErr := messaging.NewStreamOut[domain.ConsensusVotePayload](
+				ctx, consensusVoteTopic, p2pPubSub)
 			if voteStreamOutErr != nil {
 				zap.L().Fatal("fail", zap.Error(voteStreamOutErr))
 			}
 
-			reconStreamOut, reconStreamOutErr := messaging.NewStreamOut[domain.ReconciliationPayload](ctx, reconciliationTopic, p2pPubSub)
+			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[domain.ReconciliationResp](
+				ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
+			if reconStreamInErr != nil {
+				zap.L().Fatal("fail", zap.Error(reconStreamInErr))
+			}
+			reconStreamOut, reconStreamOutErr := messaging.NewStreamOut[domain.ReconciliationReq](
+				ctx, reconciliationReqTopic, p2pPubSub)
 			if reconStreamOutErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconStreamOutErr))
 			}
 
 			blockStorage := storage.NewBlockStorage(db)
-			chain := blockchain.NewBlockChain(blockStorage)
 
-			syncer := blockchain.NewSyncer(chain, blockStorage)
-			if syncErr := syncer.Init(ctx); syncErr != nil {
-				zap.L().Fatal("fail", zap.Error(syncErr))
+			syncer := blockchain.NewSyncer(blockStorage, reconStreamOut.Out(), reconStreamIn.In())
+			if runErr := syncer.Run(ctx); runErr != nil {
+				zap.L().Fatal("fail", zap.Error(runErr))
 			}
-			go func() {
-				if runErr := syncer.Run(ctx); runErr != nil {
-					zap.L().Fatal("fail", zap.Error(runErr))
-				}
-			}()
 
 			pos := consensus.NewProofOfStake()
 
@@ -112,7 +116,7 @@ func NewNode() *cobra.Command {
 					if verifyErr := pos.Verify(vote); verifyErr != nil {
 						zap.L().Error("vote verify fail", zap.Error(verifyErr))
 					}
-					pos.Append(vote)
+					pos.Append(vote, vote.GetSender())
 				}
 			}()
 
@@ -132,16 +136,13 @@ func NewNode() *cobra.Command {
 						Timestamp:    decision.Timestamp,
 						Data:         decision.Data,
 					}
-					if verifyErr := chain.Append(block); verifyErr != nil {
-						zap.L().Error("block verify fail", zap.Error(verifyErr))
-					}
-					if appendErr := chain.Append(block); appendErr != nil {
-						zap.L().Error("block append fail", zap.Error(appendErr))
+
+					if storeErr := blockStorage.Store(ctx, block); storeErr != nil {
+						zap.L().Error("block store fail", zap.Error(storeErr))
+						continue
 					}
 
-					reconStreamOut.Out() <- &domain.ReconciliationPayload{
-						// TODO: fill recon payload from block
-					}
+					pos.Reset()
 				}
 			}()
 

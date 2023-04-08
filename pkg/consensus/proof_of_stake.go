@@ -4,16 +4,16 @@ import "github.com/goforbroke1006/boatswain/domain"
 
 func NewProofOfStake() *ProofOfStake {
 	return &ProofOfStake{
-		blocksMap: make(map[domain.BlockHash]*domain.Block, 1024),
-		pool:      make(map[domain.BlockIndex]map[domain.BlockHash]map[string]struct{}, 1024),
+		votesMap:       make(map[domain.BlockHash]*domain.ConsensusVotePayload, 1024),
+		votesCollector: make(map[domain.BlockIndex]map[domain.BlockHash]map[string]struct{}, 1024),
 	}
 }
 
 var _ domain.Consensus = (*ProofOfStake)(nil)
 
 type ProofOfStake struct {
-	blocksMap map[domain.BlockHash]*domain.Block
-	pool      map[domain.BlockIndex]map[domain.BlockHash]map[string]struct{}
+	votesMap       map[domain.BlockHash]*domain.ConsensusVotePayload
+	votesCollector map[domain.BlockIndex]map[domain.BlockHash]map[string]struct{}
 }
 
 func (p ProofOfStake) Verify(vote *domain.ConsensusVotePayload) error {
@@ -21,19 +21,21 @@ func (p ProofOfStake) Verify(vote *domain.ConsensusVotePayload) error {
 	return nil
 }
 
-func (p ProofOfStake) Append(vote *domain.ConsensusVotePayload) {
-	if _, hasBlock := p.blocksMap[block.Hash()]; !hasBlock {
-		p.blocksMap[block.Hash()] = block
+func (p ProofOfStake) Append(vote *domain.ConsensusVotePayload, peerID string) {
+	if _, hasBlock := p.votesMap[vote.Hash]; !hasBlock {
+		p.votesMap[vote.Hash] = vote
 	}
 
-	if _, hasIndex := p.pool[block.Index()]; !hasIndex {
-		p.pool[block.Index()] = make(map[domain.BlockHash]map[string]struct{})
+	if _, hasIndex := p.votesCollector[vote.Index]; !hasIndex {
+		p.votesCollector[vote.Index] = make(map[domain.BlockHash]map[string]struct{})
 	}
-	if _, hasHash := p.pool[block.Index()][block.Hash()]; !hasHash {
-		p.pool[block.Index()][block.Hash()] = make(map[string]struct{})
+	if _, hasHash := p.votesCollector[vote.Index][vote.Hash]; !hasHash {
+		p.votesCollector[vote.Index][vote.Hash] = make(map[string]struct{})
 	}
 
-	p.pool[block.Index()][block.Hash()][peerCode] = struct{}{}
+	// TODO: required peer ID
+	// TODO: need to modify StreamIn to return meta-data (PeerID)
+	p.votesCollector[vote.Index][vote.Hash][peerID] = struct{}{}
 }
 
 func (p ProofOfStake) MakeDecision(id domain.BlockIndex) (*domain.ConsensusVotePayload, error) {
@@ -41,12 +43,16 @@ func (p ProofOfStake) MakeDecision(id domain.BlockIndex) (*domain.ConsensusVoteP
 		hash       domain.BlockHash
 		peersCount = 0
 	)
-	for optionHash := range p.pool[id] {
-		if len(p.pool[id][optionHash]) > peersCount {
+	for optionHash := range p.votesCollector[id] {
+		if len(p.votesCollector[id][optionHash]) > peersCount {
 			hash = optionHash
-			peersCount = len(p.pool[id][optionHash])
+			peersCount = len(p.votesCollector[id][optionHash])
 		}
 	}
 
-	return p.blocksMap[hash], nil
+	return p.votesMap[hash], nil
+}
+
+func (p ProofOfStake) Reset() {
+	// TODO: clear local cache of votes
 }

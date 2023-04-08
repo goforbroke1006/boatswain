@@ -78,7 +78,7 @@ func NewDAppChat() *cobra.Command {
 				zap.L().Fatal("fail", zap.Error(txStreamOutErr))
 			}
 
-			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[domain.ReconciliationPayload](
+			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[domain.ReconciliationResp](
 				ctx, reconciliationTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconStreamInErr))

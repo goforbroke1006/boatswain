@@ -18,7 +18,7 @@ func TestHistoryMixer(t *testing.T) {
 
 		var (
 			msgCh   = make(chan *domain.TransactionPayload)
-			reconCh = make(chan *domain.ReconciliationPayload)
+			reconCh = make(chan *domain.ReconciliationResp)
 		)
 
 		mixer := chat.NewHistoryMixer(10, msgCh, reconCh)
@@ -36,7 +36,7 @@ func TestHistoryMixer(t *testing.T) {
 
 		var (
 			msgCh   = make(chan *domain.TransactionPayload)
-			reconCh = make(chan *domain.ReconciliationPayload)
+			reconCh = make(chan *domain.ReconciliationResp)
 		)
 
 		mixer := chat.NewHistoryMixer(10, msgCh, reconCh)
@@ -68,15 +68,15 @@ func TestHistoryMixer(t *testing.T) {
 
 		var (
 			msgCh   = make(chan *domain.TransactionPayload)
-			reconCh = make(chan *domain.ReconciliationPayload)
+			reconCh = make(chan *domain.ReconciliationResp)
 		)
 
 		mixer := chat.NewHistoryMixer(10, msgCh, reconCh)
 		go func() { _ = mixer.Run(ctx) }()
 
-		reconCh <- &domain.ReconciliationPayload{}
-		reconCh <- &domain.ReconciliationPayload{}
-		reconCh <- &domain.ReconciliationPayload{}
+		reconCh <- &domain.ReconciliationResp{}
+		reconCh <- &domain.ReconciliationResp{}
+		reconCh <- &domain.ReconciliationResp{}
 
 		history := mixer.History()
 		assert.Len(t, history, 10)

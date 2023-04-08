@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/goforbroke1006/boatswain/internal"
@@ -33,6 +34,7 @@ type Block struct {
 }
 
 type BlockStorage interface {
-	Store(b *Block) error
-	LoadLastN(length uint64) ([]*Block, error)
+	GetCount(ctx context.Context) (uint64, error)
+	GetLast(ctx context.Context) (*Block, error)
+	Store(ctx context.Context, b ...*Block) error
 }

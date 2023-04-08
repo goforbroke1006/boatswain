@@ -8,11 +8,16 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+type Income interface {
+	SetSender(peerID string)
+	GetSender() string
+}
+
 // NewStreamIn creates abstraction
 // to read data from p2p pub-sub,
 // unmarshall it, and provide as <-chan *T.
 // Use generic to customize format of payload.
-func NewStreamIn[T any](
+func NewStreamIn[T Income](
 	ctx context.Context,
 	topicName string,
 	pubSub *pubsub.PubSub,
@@ -46,7 +51,7 @@ func NewStreamIn[T any](
 	return s, nil
 }
 
-type StreamIn[T any] struct {
+type StreamIn[T Income] struct {
 	ctx          context.Context
 	pubSub       *pubsub.PubSub
 	topic        *pubsub.Topic
@@ -81,6 +86,7 @@ func (s StreamIn[T]) readLoop() {
 			continue
 		}
 		// send valid messages onto the Messages channel
+		interface{}(obj).(Income).SetSender(msg.ReceivedFrom.String())
 		s.inCh <- obj
 	}
 }

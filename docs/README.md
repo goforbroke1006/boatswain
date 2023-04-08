@@ -1,18 +1,21 @@
-### Data flow
+# Boatswain
+
+### Data flow by components
 
 Node:
 
 - <- "boatswain/transaction" topic
 - <- "boatswain/consensus-vote" topic
 - -> "boatswain/consensus-vote" topic
-- -> "boatswain/reconciliation" topic
+- -> "boatswain/reconciliation/req" topic
+- <- "boatswain/reconciliation/resp" topic
 
 DApp Chat:
 
 - <- "chat: <CHAT ID>" topic
 - -> "chat: <CHAT ID>" topic
 - -> "boatswain/transaction" topic
-- <- "boatswain/reconciliation" topic
+- <- "boatswain/reconciliation/resp" topic
 
 ### Share new data inside topic "chat/cat-owners-worldwide"
 
@@ -67,6 +70,39 @@ DApp Chat:
   ]
 }
 ```
+
+### Sync blocks on node start flow
+
+```mermaid
+sequenceDiagram
+    participant BlockStorage
+    participant Syncer
+    participant Reconciliation Req
+    participant Reconciliation Resp
+    participant Another Node
+    participant Another BlockStorage
+
+    loop If BlockStorage empty
+        Syncer ->> BlockStorage: create genesis
+    end
+
+    loop Till Reconciliation Resp returns non-empty payload
+        Syncer ->> BlockStorage: load last block
+        BlockStorage -->> Syncer: return last block
+
+        Syncer ->> Reconciliation Req: request N blocks after local last block
+
+        Reconciliation Req ->> Another Node: catch request
+        Another Node ->> Another BlockStorage: load N block after block X
+        Another BlockStorage -->> Another Node: return N block after block X
+        Another Node ->> Reconciliation Resp: write N blocks
+
+        Reconciliation Resp ->> Syncer: return next N blocks after local last block
+        Syncer ->> BlockStorage: append blocks
+    end
+```
+
+### Normal data exchange flow
 
 ```mermaid
 sequenceDiagram
