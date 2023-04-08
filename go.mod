@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/enescakir/emoji v1.0.0
 	github.com/gdamore/tcell/v2 v2.5.1
+	github.com/google/uuid v1.3.0
 	github.com/libp2p/go-libp2p v0.25.0
 	github.com/libp2p/go-libp2p-pubsub v0.9.3
 	github.com/rivo/tview v0.0.0-20220307222120-9994674d60a8

@@ -32,9 +32,8 @@ type HistoryMixer struct {
 	cacheMx sync.RWMutex
 }
 
-func (hm *HistoryMixer) History() ([]domain.TransactionPayload, error) {
-	// TODO: implement me
-	return nil, nil
+func (hm *HistoryMixer) History() []*domain.TransactionPayload {
+	return hm.cache
 }
 
 func (hm *HistoryMixer) Run(ctx context.Context) error {
