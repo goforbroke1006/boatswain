@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/goforbroke1006/boatswain/pkg/blockchain"
 	"os"
 	"os/signal"
 
@@ -11,7 +12,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/goforbroke1006/boatswain/domain"
-	"github.com/goforbroke1006/boatswain/internal/blockchain"
 	"github.com/goforbroke1006/boatswain/internal/common"
 	"github.com/goforbroke1006/boatswain/internal/storage"
 	"github.com/goforbroke1006/boatswain/pkg/consensus"

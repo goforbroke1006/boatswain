@@ -14,6 +14,7 @@ func NewBlockChain(storage domain.BlockStorage) domain.BlockChain {
 	if err != nil {
 		panic(err)
 	}
+
 	bc.chain = append(bc.chain, blocks...)
 
 	return bc
