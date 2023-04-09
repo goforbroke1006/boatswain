@@ -61,7 +61,7 @@ func NewDAppChat() *cobra.Command {
 			// TODO: validate room name
 			chatTopic := fmt.Sprintf("chat/%s", roomArg)
 
-			msgStreamIn, msgStreamInErr := messaging.NewStreamIn[domain.TransactionPayload](
+			msgStreamIn, msgStreamInErr := messaging.NewStreamIn[*domain.TransactionPayload](
 				ctx, chatTopic, p2pPubSub, p2pHost.ID(), false)
 			if msgStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(msgStreamInErr))
@@ -78,7 +78,7 @@ func NewDAppChat() *cobra.Command {
 				zap.L().Fatal("fail", zap.Error(txStreamOutErr))
 			}
 
-			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[domain.ReconciliationResp](
+			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[*domain.ReconciliationResp](
 				ctx, reconciliationTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconStreamInErr))

@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 )
 
 func NewBlock(index BlockIndex, previousHash BlockHash, timestamp int64, data []*TransactionPayload) *Block {
@@ -15,24 +16,36 @@ func NewBlock(index BlockIndex, previousHash BlockHash, timestamp int64, data []
 	hash := GetSHA256(hashContent)
 
 	return &Block{
-		Index:        index,
-		Hash:         hash,
-		PreviousHash: previousHash,
-		Timestamp:    timestamp,
-		Data:         data,
+		ID:       index,
+		Hash:     hash,
+		PrevHash: previousHash,
+		Ts:       timestamp,
+		Data:     data,
 	}
 }
 
 type Block struct {
-	Index        BlockIndex
-	Hash         BlockHash
-	PreviousHash BlockHash
-	Timestamp    int64
-	Data         []*TransactionPayload
+	ID       BlockIndex
+	Hash     BlockHash
+	PrevHash BlockHash
+	Ts       int64
+	Data     []*TransactionPayload
 }
 
 type BlockStorage interface {
 	GetCount(ctx context.Context) (uint64, error)
 	GetLast(ctx context.Context) (*Block, error)
-	Store(ctx context.Context, b ...*Block) error
+	Store(ctx context.Context, blocks ...*Block) error
+	LoadLast(count uint64) ([]*Block, error)
 }
+
+var Genesis = NewBlock(1, "", 644996700, []*TransactionPayload{
+	{
+		Blockchain:    "",
+		ID:            uuid.Nil,
+		PeerSender:    "",
+		PeerRecipient: "",
+		Content:       "GENESIS",
+		Timestamp:     644996700,
+	},
+})

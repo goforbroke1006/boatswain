@@ -130,11 +130,11 @@ func NewNode() *cobra.Command {
 					}
 
 					block := &domain.Block{
-						Index:        decision.Index,
-						Hash:         decision.Hash,
-						PreviousHash: decision.PreviousHash,
-						Timestamp:    decision.Timestamp,
-						Data:         decision.Data,
+						ID:       decision.Index,
+						Hash:     decision.Hash,
+						PrevHash: decision.PreviousHash,
+						Ts:       decision.Timestamp,
+						Data:     decision.Data,
 					}
 
 					if storeErr := blockStorage.Store(ctx, block); storeErr != nil {

@@ -11,10 +11,10 @@ type ReconciliationResp struct {
 	NextBlocks []*Block   `json:"next_blocks"`
 }
 
-func (resp ReconciliationResp) SetSender(peerID string) {
+func (resp *ReconciliationResp) SetSender(peerID string) {
 	resp.metaSenderPeerID = peerID
 }
 
-func (resp ReconciliationResp) GetSender() string {
+func (resp *ReconciliationResp) GetSender() string {
 	return resp.metaSenderPeerID
 }

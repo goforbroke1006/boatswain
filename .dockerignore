@@ -1,7 +1,6 @@
-/.idea/
+/.idea
 /boatswain
 /boatswain.exe
-/*-blocks.db
 
 /**/*.gen.go
 /**/*.mock.go

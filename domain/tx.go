@@ -13,10 +13,10 @@ type TransactionPayload struct {
 	Timestamp     int64     `json:"timestamp"`
 }
 
-func (tp TransactionPayload) SetSender(peerID string) {
+func (tp *TransactionPayload) SetSender(peerID string) {
 	tp.MetaSenderPeerID = peerID
 }
 
-func (tp TransactionPayload) GetSender() string {
+func (tp *TransactionPayload) GetSender() string {
 	return tp.MetaSenderPeerID
 }

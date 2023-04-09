@@ -71,11 +71,11 @@ func (s blockStorage) GetLast(ctx context.Context) (*domain.Block, error) {
 	}
 
 	lastBlock = &domain.Block{
-		Index:        domain.BlockIndex(index),
-		Hash:         domain.BlockHash(hash),
-		PreviousHash: domain.BlockHash(phash),
-		Timestamp:    ts,
-		Data:         nil, // TODO: parse data from DB
+		ID:       domain.BlockIndex(index),
+		Hash:     domain.BlockHash(hash),
+		PrevHash: domain.BlockHash(phash),
+		Ts:       ts,
+		Data:     nil, // TODO: parse data from DB
 	}
 
 	if rows.Err() != nil {
@@ -96,11 +96,16 @@ func (s blockStorage) Store(ctx context.Context, blocks ...*domain.Block) error 
 
 	for _, b := range blocks {
 		_, execErr := tx.ExecContext(ctx, `INSERT INTO blocks VALUES (?, ?, ?, ?, ?)`,
-			b.Index, b.Hash, b.PreviousHash, b.Timestamp, b.Data)
+			b.ID, b.Hash, b.PrevHash, b.Ts, b.Data)
 		if execErr != nil {
 			return execErr
 		}
 	}
 
 	return nil
+}
+
+func (s blockStorage) LoadLast(count uint64) ([]*domain.Block, error) {
+	//TODO implement me
+	panic("implement me")
 }

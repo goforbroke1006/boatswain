@@ -3,8 +3,6 @@ package blockchain
 import (
 	"context"
 
-	"github.com/google/uuid"
-
 	"github.com/goforbroke1006/boatswain/domain"
 )
 
@@ -34,17 +32,8 @@ func (s Syncer) Run(ctx context.Context) error {
 	}
 
 	if count == 0 {
-		genesis := domain.NewBlock(1, "", 644996700, []*domain.TransactionPayload{
-			{
-				Blockchain:    "",
-				ID:            uuid.Nil,
-				PeerSender:    "",
-				PeerRecipient: "",
-				Content:       "GENESIS",
-				Timestamp:     644996700,
-			},
-		})
-		if storeErr := s.storage.Store(ctx, genesis); storeErr != nil {
+		storeErr := s.storage.Store(ctx, domain.Genesis)
+		if storeErr != nil {
 			return storeErr
 		}
 	}
@@ -55,12 +44,12 @@ func (s Syncer) Run(ctx context.Context) error {
 			return lastBlockErr
 		}
 
-		s.reconOut <- &domain.ReconciliationReq{AfterIndex: lastBlock.Index}
+		s.reconOut <- &domain.ReconciliationReq{AfterIndex: lastBlock.ID}
 
 		for {
 			payload := <-s.reconIn
 
-			if payload.AfterIndex != lastBlock.Index {
+			if payload.AfterIndex != lastBlock.ID {
 				continue // skip message for another nodes
 			}
 
@@ -68,11 +57,16 @@ func (s Syncer) Run(ctx context.Context) error {
 				return nil
 			}
 
-			// TODO: verify blocks before store, skip invalid blocks
+			// TODO: verify IDs are correct sequence
 
-			if storeErr := s.storage.Store(ctx, payload.NextBlocks...); storeErr != nil {
+			// TODO: verify blocks hashes before store, skip invalid blocks
+
+			storeErr := s.storage.Store(ctx, payload.NextBlocks...)
+			if storeErr != nil {
 				return storeErr
 			}
+
+			break
 		}
 	}
 }
