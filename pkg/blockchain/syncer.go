@@ -34,7 +34,7 @@ func (s Syncer) Run(ctx context.Context) error {
 	}
 
 	if count == 0 {
-		genesis := domain.NewBlock(1, "", 644996700, []domain.TransactionPayload{
+		genesis := domain.NewBlock(1, "", 644996700, []*domain.TransactionPayload{
 			{
 				Blockchain:    "",
 				ID:            uuid.Nil,

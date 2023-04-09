@@ -43,7 +43,7 @@ func NewStreamIn[T Income](
 		selfID:     selfID,
 		ignoreSelf: ignoreSelf,
 
-		inCh: make(chan *T, 128),
+		inCh: make(chan T, 128),
 	}
 
 	go s.readLoop()
@@ -60,10 +60,10 @@ type StreamIn[T Income] struct {
 	selfID     peer.ID
 	ignoreSelf bool
 
-	inCh chan *T
+	inCh chan T
 }
 
-func (s StreamIn[T]) In() <-chan *T {
+func (s StreamIn[T]) In() <-chan T {
 	return s.inCh
 }
 
@@ -78,7 +78,7 @@ func (s StreamIn[T]) readLoop() {
 		if s.ignoreSelf && msg.ReceivedFrom == s.selfID {
 			continue
 		}
-		obj := new(T)
+		var obj T
 		err = json.Unmarshal(msg.Data, obj)
 		if err != nil {
 			// message has invalid format

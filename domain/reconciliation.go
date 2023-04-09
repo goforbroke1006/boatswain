@@ -1,20 +1,20 @@
 package domain
 
 type ReconciliationReq struct {
-	AfterIndex BlockIndex
+	AfterIndex BlockIndex `json:"after_index"`
 }
 
 type ReconciliationResp struct {
-	MetaSenderPeerID string
+	metaSenderPeerID string
 
-	AfterIndex BlockIndex
-	NextBlocks []*Block
+	AfterIndex BlockIndex `json:"after_index"`
+	NextBlocks []*Block   `json:"next_blocks"`
 }
 
 func (resp ReconciliationResp) SetSender(peerID string) {
-	resp.MetaSenderPeerID = peerID
+	resp.metaSenderPeerID = peerID
 }
 
 func (resp ReconciliationResp) GetSender() string {
-	return resp.MetaSenderPeerID
+	return resp.metaSenderPeerID
 }

@@ -34,6 +34,9 @@ type HistoryMixer struct {
 }
 
 func (hm *HistoryMixer) History() []*domain.TransactionPayload {
+	hm.cacheMx.RLock()
+	defer hm.cacheMx.RUnlock()
+
 	return hm.cache
 }
 
@@ -49,7 +52,36 @@ func (hm *HistoryMixer) Run(ctx context.Context) error {
 			// TODO: sort messages by timestamp ASC
 			// TODO: get min and max timestamp
 			// TODO: replace all between min-max
-			_ = recon
+
+			var tmp []*domain.TransactionPayload
+			for _, block := range recon.NextBlocks {
+				tmp = append(tmp, block.Data...)
+			}
+			if len(tmp) == 0 {
+				break
+			}
+			sort.Slice(tmp, func(i, j int) bool {
+				return tmp[i].Timestamp < tmp[j].Timestamp
+			})
+
+			var (
+				minTs = tmp[0].Timestamp
+				maxTs = tmp[len(tmp)-1].Timestamp
+			)
+
+			sort.Slice(hm.cache, func(i, j int) bool {
+				return hm.cache[i].Timestamp < hm.cache[j].Timestamp
+			})
+
+			for i := len(hm.cache) - 1; i >= 0; i-- {
+				if minTs <= hm.cache[i].Timestamp && hm.cache[i].Timestamp <= maxTs {
+					hm.cache = append(hm.cache[:i], hm.cache[i+1:]...)
+				}
+			}
+			hm.cache = append(hm.cache, tmp...)
+			sort.Slice(hm.cache, func(i, j int) bool {
+				return hm.cache[i].Timestamp < hm.cache[j].Timestamp
+			})
 
 			if len(hm.cache) > int(hm.limit) {
 				hm.cache = hm.cache[len(hm.cache)-int(hm.limit):] // leave N last messages
@@ -64,7 +96,6 @@ func (hm *HistoryMixer) Run(ctx context.Context) error {
 			hm.cacheMx.Lock()
 
 			hm.cache = append(hm.cache, msg)
-			// TODO: sort messages by timestamp ASC
 			sort.Slice(hm.cache, func(i, j int) bool {
 				return hm.cache[i].Timestamp < hm.cache[j].Timestamp
 			})

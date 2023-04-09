@@ -64,19 +64,18 @@ func (s blockStorage) GetLast(ctx context.Context) (*domain.Block, error) {
 
 	var lastBlock *domain.Block
 
-	for rows.Next() {
-		if scanErr := rows.Scan(&index, &hash, &phash, &ts, &data); scanErr != nil {
-			return nil, scanErr
-		}
+	rows.Next()
 
-		lastBlock = &domain.Block{
-			Index:        domain.BlockIndex(index),
-			Hash:         domain.BlockHash(hash),
-			PreviousHash: domain.BlockHash(phash),
-			Timestamp:    ts,
-			Data:         nil, // TODO: parse data from DB
-		}
-		break
+	if scanErr := rows.Scan(&index, &hash, &phash, &ts, &data); scanErr != nil {
+		return nil, scanErr
+	}
+
+	lastBlock = &domain.Block{
+		Index:        domain.BlockIndex(index),
+		Hash:         domain.BlockHash(hash),
+		PreviousHash: domain.BlockHash(phash),
+		Timestamp:    ts,
+		Data:         nil, // TODO: parse data from DB
 	}
 
 	if rows.Err() != nil {

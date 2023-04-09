@@ -1,4 +1,4 @@
-package internal
+package domain
 
 import "testing"
 
@@ -9,7 +9,7 @@ func Test_GetSHA256(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want string
+		want BlockHash
 	}{
 		{
 			name: "positive 1",

@@ -1,21 +1,21 @@
 package domain
 
 type ConsensusVotePayload struct {
-	MetaSenderPeerID string `json:"-"`
+	metaSenderPeerID string
 
-	Index        BlockIndex           `json:"index"`
-	Hash         BlockHash            `json:"hash"`
-	PreviousHash BlockHash            `json:"previous_hash"`
-	Timestamp    int64                `json:"timestamp"`
-	Data         []TransactionPayload `json:"data"`
+	Index        BlockIndex            `json:"index"`
+	Hash         BlockHash             `json:"hash"`
+	PreviousHash BlockHash             `json:"previous_hash"`
+	Timestamp    int64                 `json:"timestamp"`
+	Data         []*TransactionPayload `json:"data"`
 }
 
-func (cp ConsensusVotePayload) SetSender(peerID string) {
-	cp.MetaSenderPeerID = peerID
+func (cp *ConsensusVotePayload) SetSender(peerID string) {
+	cp.metaSenderPeerID = peerID
 }
 
-func (cp ConsensusVotePayload) GetSender() string {
-	return cp.MetaSenderPeerID
+func (cp *ConsensusVotePayload) GetSender() string {
+	return cp.metaSenderPeerID
 }
 
 type Consensus interface {
