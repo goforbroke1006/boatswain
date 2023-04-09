@@ -68,15 +68,10 @@ func NewNode() *cobra.Command {
 				zap.L().Fatal("fail", zap.Error(txStreamInErr))
 			}
 
-			voteStreamIn, voteStreamInErr := messaging.NewStreamIn[*domain.ConsensusVotePayload](
+			voteStream, voteStreamErr := messaging.NewStreamBoth[*domain.ConsensusVotePayload](
 				ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID(), true)
-			if voteStreamInErr != nil {
-				zap.L().Fatal("fail", zap.Error(voteStreamInErr))
-			}
-			voteStreamOut, voteStreamOutErr := messaging.NewStreamOut[domain.ConsensusVotePayload](
-				ctx, consensusVoteTopic, p2pPubSub)
-			if voteStreamOutErr != nil {
-				zap.L().Fatal("fail", zap.Error(voteStreamOutErr))
+			if voteStreamErr != nil {
+				zap.L().Fatal("fail", zap.Error(voteStreamErr))
 			}
 
 			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[*domain.ReconciliationResp](
@@ -105,14 +100,14 @@ func NewNode() *cobra.Command {
 					_ = tx
 
 					// TODO: if TXes takes 1Mb of memory
-					voteStreamOut.Out() <- &domain.ConsensusVotePayload{
+					voteStream.Out() <- &domain.ConsensusVotePayload{
 						// TODO: fill with collector cache
 					}
 				}
 			}()
 
 			go func() {
-				for vote := range voteStreamIn.In() {
+				for vote := range voteStream.In() {
 					if verifyErr := pos.Verify(vote); verifyErr != nil {
 						zap.L().Error("vote verify fail", zap.Error(verifyErr))
 					}
