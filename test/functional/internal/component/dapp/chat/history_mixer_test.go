@@ -57,6 +57,8 @@ func TestHistoryMixer(t *testing.T) {
 		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979102}
 		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979101}
 
+		<-time.After(time.Millisecond)
+
 		history := mixer.History()
 		assert.Len(t, history, 10)
 		assert.Equal(t, history[0].Timestamp, int64(1680979104))
@@ -124,6 +126,8 @@ func TestHistoryMixer(t *testing.T) {
 				},
 			},
 		}
+
+		<-time.After(time.Millisecond)
 
 		history := mixer.History()
 		assert.Len(t, history, 10)
