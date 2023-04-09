@@ -1,6 +1,10 @@
 /.idea
+/.docker-compose
+/docs
 /boatswain
 /boatswain.exe
+/setup.sh
 
 /**/*.gen.go
 /**/*.mock.go
+/**/*.db
