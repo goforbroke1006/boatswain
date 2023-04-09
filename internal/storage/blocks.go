@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/goforbroke1006/boatswain/domain"
 )
@@ -55,20 +56,23 @@ func (s blockStorage) GetLast(ctx context.Context) (*domain.Block, error) {
 	defer func() { _ = rows.Close() }()
 
 	var (
-		index uint64
-		hash  string
-		phash string
-		ts    int64
-		data  string
+		index      uint64
+		hash       string
+		phash      string
+		ts         int64
+		dataAsJson string
+		data       []*domain.TransactionPayload
 	)
 
 	var lastBlock *domain.Block
 
 	rows.Next()
 
-	if scanErr := rows.Scan(&index, &hash, &phash, &ts, &data); scanErr != nil {
+	if scanErr := rows.Scan(&index, &hash, &phash, &ts, &dataAsJson); scanErr != nil {
 		return nil, scanErr
 	}
+
+	_ = json.Unmarshal([]byte(dataAsJson), &data)
 
 	lastBlock = &domain.Block{
 		ID:       domain.BlockIndex(index),
@@ -95,8 +99,9 @@ func (s blockStorage) Store(ctx context.Context, blocks ...*domain.Block) error 
 	}()
 
 	for _, b := range blocks {
+		dataAsJson, _ := json.Marshal(b.Data)
 		_, execErr := tx.ExecContext(ctx, `INSERT INTO blocks VALUES (?, ?, ?, ?, ?)`,
-			b.ID, b.Hash, b.PrevHash, b.Ts, b.Data)
+			b.ID, b.Hash, b.PrevHash, b.Ts, string(dataAsJson))
 		if execErr != nil {
 			return execErr
 		}

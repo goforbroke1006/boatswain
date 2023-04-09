@@ -3,6 +3,7 @@ package messaging
 import (
 	"context"
 	"encoding/json"
+	"github.com/pkg/errors"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -69,6 +70,9 @@ func (s StreamBoth[T]) readLoop() {
 	for {
 		msg, err := s.subscription.Next(s.ctx)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return
+			}
 			panic(err)
 		}
 

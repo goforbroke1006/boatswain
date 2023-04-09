@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"context"
-	"os"
+	"github.com/pkg/errors"
 	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -34,7 +36,7 @@ func NewNode() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "node",
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 
 			// create a new libp2p Host that listens on a random TCP port
@@ -42,6 +44,7 @@ func NewNode() *cobra.Command {
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
 			}
+			zap.L().Info("host peer started", zap.String("id", p2pHost.ID().String()))
 
 			// create a new PubSub service using the GossipSub router
 			p2pPubSub, p2pPubSubErr := pubsub.NewGossipSub(ctx, p2pHost)
@@ -88,9 +91,10 @@ func NewNode() *cobra.Command {
 			blockStorage := storage.NewBlockStorage(db)
 
 			syncer := blockchain.NewSyncer(blockStorage, reconStreamOut.Out(), reconStreamIn.In())
-			if runErr := syncer.Run(ctx); runErr != nil {
+			if runErr := syncer.Run(ctx); runErr != nil && !errors.Is(runErr, context.Canceled) {
 				zap.L().Fatal("fail", zap.Error(runErr))
 			}
+			zap.L().Info("reconciliation finished", zap.Uint64("blocks", syncer.Count()))
 
 			pos := consensus.NewProofOfStake()
 
@@ -111,6 +115,7 @@ func NewNode() *cobra.Command {
 					if verifyErr := pos.Verify(vote); verifyErr != nil {
 						zap.L().Error("vote verify fail", zap.Error(verifyErr))
 					}
+					zap.L().Info("vote", zap.Uint64("block-id", uint64(vote.Index)))
 					pos.Append(vote, vote.GetSender())
 				}
 			}()
@@ -122,6 +127,12 @@ func NewNode() *cobra.Command {
 					if err != nil {
 						zap.L().Error("make decision fail", zap.Error(err))
 						continue
+					}
+
+					if decision == nil {
+						time.Sleep(10 * time.Second)
+						continue
+						// FIXME: not finished and produce nil-pointer panic
 					}
 
 					block := &domain.Block{
