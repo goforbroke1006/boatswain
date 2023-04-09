@@ -4,11 +4,7 @@ services:
 
   chat-member-001:
     image: golang:1.10-alpine
-    command:
-      - run
-      - main.go
-      - dapp
-      - chat
+    command: run main.go -- node
     working_dir: /code/
     volumes:
       - .:/code/

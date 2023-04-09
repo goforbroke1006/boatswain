@@ -3,6 +3,8 @@ package common
 import (
 	"database/sql"
 	"os"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func OpenDBConn() (*sql.DB, error) {
