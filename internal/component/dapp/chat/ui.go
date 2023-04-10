@@ -130,7 +130,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 				peers := ui.p2pPubSub.ListPeers(ui.chatTopic)
 				peersList.Clear()
 				for _, p := range peers {
-					_, _ = fmt.Fprintln(peersList, shortID(p))
+					_, _ = fmt.Fprintln(peersList, p.String())
 				}
 
 				app.Draw()
@@ -142,7 +142,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 	// the peers list takes 20 columns, and the messages take the remaining space
 	chatPanel := tview.NewFlex().
 		AddItem(msgBox, 0, 1, false).
-		AddItem(peersList, 20, 1, false)
+		AddItem(peersList, 54, 1, false)
 
 	// flex is a vertical box with the chatPanel on top and the input field at the bottom.
 

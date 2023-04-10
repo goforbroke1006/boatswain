@@ -22,7 +22,7 @@ lint: lint/golang
 .PHONY: lint
 
 lint/golang:
-	golangci-lint run
+	golangci-lint run .
 .PHONY: lint/golang
 
 build/release:
