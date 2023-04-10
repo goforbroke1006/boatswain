@@ -9,22 +9,20 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-type Income interface {
-	SetSender(peerID string)
-	GetSender() string
-}
-
 // NewStreamIn creates abstraction
 // to read data from p2p pub-sub,
 // unmarshall it, and provide as <-chan *T.
 // Use generic to customize format of payload.
-func NewStreamIn[T Income](
+func NewStreamIn[Type any, PtrType interface {
+	*Type
+	Income
+}](
 	ctx context.Context,
 	topicName string,
 	pubSub *pubsub.PubSub,
 	selfID peer.ID,
 	ignoreSelf bool,
-) (*StreamIn[T], error) {
+) (*StreamIn[Type, PtrType], error) {
 	topic, topicErr := pubSub.Join(topicName)
 	if topicErr != nil {
 		return nil, topicErr
@@ -35,7 +33,7 @@ func NewStreamIn[T Income](
 		return nil, subErr
 	}
 
-	s := &StreamIn[T]{
+	s := &StreamIn[Type, PtrType]{
 		ctx:          ctx,
 		pubSub:       pubSub,
 		topic:        topic,
@@ -44,7 +42,7 @@ func NewStreamIn[T Income](
 		selfID:     selfID,
 		ignoreSelf: ignoreSelf,
 
-		inCh: make(chan T, 128),
+		inCh: make(chan PtrType, 128),
 	}
 
 	go s.readLoop()
@@ -52,7 +50,10 @@ func NewStreamIn[T Income](
 	return s, nil
 }
 
-type StreamIn[T Income] struct {
+type StreamIn[Type any, PtrType interface {
+	*Type
+	Income
+}] struct {
 	ctx          context.Context
 	pubSub       *pubsub.PubSub
 	topic        *pubsub.Topic
@@ -61,14 +62,14 @@ type StreamIn[T Income] struct {
 	selfID     peer.ID
 	ignoreSelf bool
 
-	inCh chan T
+	inCh chan PtrType
 }
 
-func (s StreamIn[T]) In() <-chan T {
+func (s StreamIn[Type, PtrType]) In() <-chan PtrType {
 	return s.inCh
 }
 
-func (s StreamIn[T]) readLoop() {
+func (s StreamIn[Type, PtrType]) readLoop() {
 	for {
 		msg, err := s.subscription.Next(s.ctx)
 		if err != nil {
@@ -82,7 +83,8 @@ func (s StreamIn[T]) readLoop() {
 		if s.ignoreSelf && msg.ReceivedFrom == s.selfID {
 			continue
 		}
-		var obj T
+		var obj PtrType
+		obj = new(Type)
 		err = json.Unmarshal(msg.Data, obj)
 		if err != nil {
 			// message has invalid format

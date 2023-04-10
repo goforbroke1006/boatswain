@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/google/uuid"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rivo/tview"
 
 	"github.com/goforbroke1006/boatswain/domain"
@@ -15,6 +17,7 @@ import (
 // NewChatUI returns a new ChatUI struct that controls the text UI.
 // It won't actually do anything until you call Run().
 func NewChatUI(
+	p2pHost host.Host,
 	p2pPubSub *pubsub.PubSub,
 	chatTopic string,
 	nickName string,
@@ -23,6 +26,7 @@ func NewChatUI(
 	txOut chan<- *domain.TransactionPayload,
 ) *ChatUI {
 	return &ChatUI{
+		p2pHost:      p2pHost,
 		p2pPubSub:    p2pPubSub,
 		nickName:     nickName,
 		chatTopic:    chatTopic,
@@ -37,6 +41,7 @@ func NewChatUI(
 // mode. You can quit with Ctrl-C, or by typing "/quit" into the
 // chat prompt.
 type ChatUI struct {
+	p2pHost   host.Host
 	p2pPubSub *pubsub.PubSub
 	chatTopic string
 
@@ -68,7 +73,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 				msgBox.Clear()
 				for _, item := range history {
 					color := "red"
-					if item.PeerSender == ui.nickName {
+					if item.PeerSender == ui.p2pHost.ID().String() {
 						color = "green"
 					}
 					prompt := withColor(color, fmt.Sprintf("<%s>:", item.PeerSender))
@@ -110,8 +115,17 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 		prompt := withColor("green", fmt.Sprintf("<%s>:", ui.nickName))
 		_, _ = fmt.Fprintf(msgBox, "%s %s\n", prompt, line)
 
-		// TODO: send message to room mates
-		// TODO: send message to node
+		// send message to room mates
+		// send message to node
+		tx := &domain.TransactionPayload{
+			ID:            uuid.New(),
+			PeerSender:    ui.p2pHost.ID().String(),
+			PeerRecipient: "",
+			Content:       line,
+			Timestamp:     time.Now().Unix(),
+		}
+		ui.msgOut <- tx
+		ui.txOut <- tx
 
 		input.SetText("")
 	})

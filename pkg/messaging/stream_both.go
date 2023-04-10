@@ -10,13 +10,16 @@ import (
 )
 
 // NewStreamBoth creates abstraction that combine StreamIn and StreamOut
-func NewStreamBoth[T Income](
+func NewStreamBoth[Type any, PtrType interface {
+	*Type
+	Income
+}](
 	ctx context.Context,
 	topicName string,
 	pubSub *pubsub.PubSub,
 	selfID peer.ID,
 	ignoreSelf bool,
-) (*StreamBoth[T], error) {
+) (*StreamBoth[Type, PtrType], error) {
 	topic, topicErr := pubSub.Join(topicName)
 	if topicErr != nil {
 		return nil, topicErr
@@ -27,7 +30,7 @@ func NewStreamBoth[T Income](
 		return nil, subErr
 	}
 
-	s := &StreamBoth[T]{
+	s := &StreamBoth[Type, PtrType]{
 		ctx:          ctx,
 		pubSub:       pubSub,
 		topic:        topic,
@@ -36,8 +39,8 @@ func NewStreamBoth[T Income](
 		selfID:     selfID,
 		ignoreSelf: ignoreSelf,
 
-		inCh:  make(chan T, 128),
-		outCh: make(chan T, 128),
+		inCh:  make(chan PtrType, 128),
+		outCh: make(chan PtrType, 128),
 	}
 
 	go s.readLoop()
@@ -46,7 +49,10 @@ func NewStreamBoth[T Income](
 	return s, nil
 }
 
-type StreamBoth[T Income] struct {
+type StreamBoth[Type any, PtrType interface {
+	*Type
+	Income
+}] struct {
 	ctx          context.Context
 	pubSub       *pubsub.PubSub
 	topic        *pubsub.Topic
@@ -55,19 +61,19 @@ type StreamBoth[T Income] struct {
 	selfID     peer.ID
 	ignoreSelf bool
 
-	inCh  chan T
-	outCh chan T
+	inCh  chan PtrType
+	outCh chan PtrType
 }
 
-func (s StreamBoth[T]) In() <-chan T {
+func (s StreamBoth[Type, PtrType]) In() <-chan PtrType {
 	return s.inCh
 }
 
-func (s StreamBoth[T]) Out() chan<- T {
+func (s StreamBoth[Type, PtrType]) Out() chan<- PtrType {
 	return s.outCh
 }
 
-func (s StreamBoth[T]) readLoop() {
+func (s StreamBoth[Type, PtrType]) readLoop() {
 	for {
 		msg, err := s.subscription.Next(s.ctx)
 		if err != nil {
@@ -81,7 +87,8 @@ func (s StreamBoth[T]) readLoop() {
 		if s.ignoreSelf && msg.ReceivedFrom == s.selfID {
 			continue
 		}
-		var obj T
+		var obj PtrType
+		obj = new(Type)
 		err = json.Unmarshal(msg.Data, obj)
 		if err != nil {
 			// message has invalid format
@@ -94,7 +101,7 @@ func (s StreamBoth[T]) readLoop() {
 	}
 }
 
-func (s StreamBoth[T]) writeLoop() {
+func (s StreamBoth[Type, PtrType]) writeLoop() {
 WriteLoop:
 	for {
 		select {

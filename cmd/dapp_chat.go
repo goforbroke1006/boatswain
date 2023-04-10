@@ -56,7 +56,10 @@ func NewDAppChat() *cobra.Command {
 			}
 			defer func() { _ = discoverySvc.Close() }()
 
-			msgStream, msgStreamErr := messaging.NewStreamBoth[*domain.TransactionPayload](
+			msgStream, msgStreamErr := messaging.NewStreamBoth[
+				domain.TransactionPayload,
+				*domain.TransactionPayload,
+			](
 				ctx, chatTopic, p2pPubSub, p2pHost.ID(), false)
 			if msgStreamErr != nil {
 				zap.L().Fatal("fail", zap.Error(msgStreamErr))
@@ -68,7 +71,10 @@ func NewDAppChat() *cobra.Command {
 				zap.L().Fatal("fail", zap.Error(txStreamOutErr))
 			}
 
-			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[*domain.ReconciliationResp](
+			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[
+				domain.ReconciliationResp,
+				*domain.ReconciliationResp,
+			](
 				ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconStreamInErr))
@@ -83,7 +89,7 @@ func NewDAppChat() *cobra.Command {
 
 			// draw the UI
 			ui := chat.NewChatUI(
-				p2pPubSub, chatTopic,
+				p2pHost, p2pPubSub, chatTopic,
 				nickName,
 				historyMixer,
 				msgStream.Out(),
