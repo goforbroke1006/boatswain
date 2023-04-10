@@ -3,33 +3,50 @@ package domain
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 )
 
-func NewBlock(index BlockIndex, previousHash BlockHash, timestamp int64, data []*TransactionPayload) *Block {
-	hashContent := fmt.Sprintf("%d-%s-%d", index, previousHash, timestamp)
-	for _, txp := range data {
+func NewBlock(id BlockIndex, prevHash BlockHash, ts time.Time, data []*Transaction) *Block {
+	b := &Block{
+		ID:       id,
+		Hash:     "",
+		PrevHash: prevHash,
+		Ts:       ts.Unix(),
+		Data:     data,
+	}
+	b.GenerateHash()
+	return b
+}
+
+type Block struct {
+	ID       BlockIndex     `json:"id"`
+	Hash     BlockHash      `json:"hash"`
+	PrevHash BlockHash      `json:"prev_hash"`
+	Ts       int64          `json:"ts"`
+	Data     []*Transaction `json:"data"`
+
+	metaSenderPeerID string
+}
+
+func (b *Block) GenerateHash() {
+	hashContent := fmt.Sprintf("%d-%s-%d", b.ID, b.PrevHash, b.Ts)
+
+	for _, txp := range b.Data {
 		hashContent += fmt.Sprintf("--%s-%s-%d-%s",
 			txp.ID.String(), txp.PeerSender, txp.Timestamp, GetSHA256(txp.Content))
 	}
 
-	hash := GetSHA256(hashContent)
-
-	return &Block{
-		ID:       index,
-		Hash:     hash,
-		PrevHash: previousHash,
-		Ts:       timestamp,
-		Data:     data,
-	}
+	b.Hash = GetSHA256(hashContent)
 }
 
-type Block struct {
-	ID       BlockIndex
-	Hash     BlockHash
-	PrevHash BlockHash
-	Ts       int64
-	Data     []*TransactionPayload
+func (b *Block) SetSender(peerID string) {
+	b.metaSenderPeerID = peerID
+}
+
+func (b *Block) GetSender() string {
+	return b.metaSenderPeerID
 }
 
 type BlockStorage interface {
@@ -39,7 +56,7 @@ type BlockStorage interface {
 	LoadLast(count uint64) ([]*Block, error)
 }
 
-var Genesis = NewBlock(1, "", 644996700, []*TransactionPayload{
+var Genesis = NewBlock(1, "", time.Unix(644996700, 0), []*Transaction{
 	{
 		ID:            uuid.Nil,
 		PeerSender:    "",

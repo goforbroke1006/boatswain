@@ -2,7 +2,7 @@ package domain
 
 import "github.com/google/uuid"
 
-type TransactionPayload struct {
+type Transaction struct {
 	metaSenderPeerID string
 
 	ID            uuid.UUID `json:"id"`
@@ -12,10 +12,10 @@ type TransactionPayload struct {
 	Timestamp     int64     `json:"timestamp"`
 }
 
-func (tp *TransactionPayload) SetSender(peerID string) {
+func (tp *Transaction) SetSender(peerID string) {
 	tp.metaSenderPeerID = peerID
 }
 
-func (tp *TransactionPayload) GetSender() string {
+func (tp *Transaction) GetSender() string {
 	return tp.metaSenderPeerID
 }

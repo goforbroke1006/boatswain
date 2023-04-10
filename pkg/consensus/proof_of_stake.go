@@ -4,7 +4,7 @@ import "github.com/goforbroke1006/boatswain/domain"
 
 func NewProofOfStake() *ProofOfStake {
 	return &ProofOfStake{
-		votesMap:       make(map[domain.BlockHash]*domain.ConsensusVotePayload, 1024),
+		votesMap:       make(map[domain.BlockHash]*domain.Block, 1024),
 		votesCollector: make(map[domain.BlockIndex]map[domain.BlockHash]map[string]struct{}, 1024),
 	}
 }
@@ -12,33 +12,33 @@ func NewProofOfStake() *ProofOfStake {
 var _ domain.Consensus = (*ProofOfStake)(nil)
 
 type ProofOfStake struct {
-	votesMap       map[domain.BlockHash]*domain.ConsensusVotePayload
+	votesMap       map[domain.BlockHash]*domain.Block
 	votesCollector map[domain.BlockIndex]map[domain.BlockHash]map[string]struct{}
 }
 
-func (p ProofOfStake) Verify(vote *domain.ConsensusVotePayload) error {
+func (p ProofOfStake) Verify(vote *domain.Block) error {
 	// TODO: implement me
 	return nil
 }
 
-func (p ProofOfStake) Append(vote *domain.ConsensusVotePayload, peerID string) {
+func (p ProofOfStake) Append(vote *domain.Block, peerID string) {
 	if _, hasBlock := p.votesMap[vote.Hash]; !hasBlock {
 		p.votesMap[vote.Hash] = vote
 	}
 
-	if _, hasIndex := p.votesCollector[vote.Index]; !hasIndex {
-		p.votesCollector[vote.Index] = make(map[domain.BlockHash]map[string]struct{})
+	if _, hasIndex := p.votesCollector[vote.ID]; !hasIndex {
+		p.votesCollector[vote.ID] = make(map[domain.BlockHash]map[string]struct{})
 	}
-	if _, hasHash := p.votesCollector[vote.Index][vote.Hash]; !hasHash {
-		p.votesCollector[vote.Index][vote.Hash] = make(map[string]struct{})
+	if _, hasHash := p.votesCollector[vote.ID][vote.Hash]; !hasHash {
+		p.votesCollector[vote.ID][vote.Hash] = make(map[string]struct{})
 	}
 
 	// TODO: required peer ID
 	// TODO: need to modify StreamIn to return meta-data (PeerID)
-	p.votesCollector[vote.Index][vote.Hash][peerID] = struct{}{}
+	p.votesCollector[vote.ID][vote.Hash][peerID] = struct{}{}
 }
 
-func (p ProofOfStake) MakeDecision(id domain.BlockIndex) (*domain.ConsensusVotePayload, error) {
+func (p ProofOfStake) MakeDecision(id domain.BlockIndex) (*domain.Block, error) {
 	var (
 		hash       domain.BlockHash
 		peersCount = 0

@@ -65,15 +65,18 @@ func NewNode() *cobra.Command {
 			}
 			defer func() { _ = db.Close() }()
 
-			txStreamIn, txStreamInErr := messaging.NewStreamIn[domain.TransactionPayload](
+			txStreamIn, txStreamInErr := messaging.NewStreamIn[
+				domain.Transaction,
+				*domain.Transaction,
+			](
 				ctx, transactionTopic, p2pPubSub, p2pHost.ID(), true)
 			if txStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(txStreamInErr))
 			}
 
 			voteStream, voteStreamErr := messaging.NewStreamBoth[
-				domain.ConsensusVotePayload,
-				*domain.ConsensusVotePayload,
+				domain.Block,
+				*domain.Block,
 			](
 				ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID(), true)
 			if voteStreamErr != nil {
@@ -102,34 +105,28 @@ func NewNode() *cobra.Command {
 			}
 			zap.L().Info("reconciliation finished", zap.Uint64("blocks", syncer.Count()))
 
-			pos := consensus.NewProofOfStake()
-
+			collector := consensus.NewNextBlockGenerator(8, txStreamIn.In(),
+				blockStorage, voteStream.Out())
 			go func() {
-				for tx := range txStreamIn.In() {
-					// TODO: collect TX
-					_ = tx
-
-					// TODO: if TXes takes 1Mb of memory
-					voteStream.Out() <- &domain.ConsensusVotePayload{
-						// TODO: fill with collector cache
-					}
+				if runErr := collector.Run(ctx); runErr != nil {
+					zap.L().Fatal("fail", zap.Error(runErr))
 				}
 			}()
 
+			posConsensus := consensus.NewProofOfStake()
 			go func() {
 				for vote := range voteStream.In() {
-					if verifyErr := pos.Verify(vote); verifyErr != nil {
+					if verifyErr := posConsensus.Verify(vote); verifyErr != nil {
 						zap.L().Error("vote verify fail", zap.Error(verifyErr))
 					}
-					zap.L().Info("vote", zap.Uint64("block-id", uint64(vote.Index)))
-					pos.Append(vote, vote.GetSender())
+					zap.L().Info("vote", zap.Uint64("block-id", uint64(vote.ID)))
+					posConsensus.Append(vote, vote.GetSender())
 				}
 			}()
-
 			go func() {
 				for {
 					// TODO: on cron make decision
-					decision, err := pos.MakeDecision(123)
+					decision, err := posConsensus.MakeDecision(123)
 					if err != nil {
 						zap.L().Error("make decision fail", zap.Error(err))
 						continue
@@ -141,20 +138,12 @@ func NewNode() *cobra.Command {
 						// FIXME: not finished and produce nil-pointer panic
 					}
 
-					block := &domain.Block{
-						ID:       decision.Index,
-						Hash:     decision.Hash,
-						PrevHash: decision.PreviousHash,
-						Ts:       decision.Timestamp,
-						Data:     decision.Data,
-					}
-
-					if storeErr := blockStorage.Store(ctx, block); storeErr != nil {
+					if storeErr := blockStorage.Store(ctx, decision); storeErr != nil {
 						zap.L().Error("block store fail", zap.Error(storeErr))
 						continue
 					}
 
-					pos.Reset()
+					posConsensus.Reset()
 				}
 			}()
 

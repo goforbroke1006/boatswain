@@ -12,28 +12,28 @@ import (
 
 func NewHistoryMixer(
 	limit uint,
-	msgCh <-chan *domain.TransactionPayload,
+	msgCh <-chan *domain.Transaction,
 	reconCh <-chan *domain.ReconciliationResp,
 ) *HistoryMixer {
 	hm := &HistoryMixer{
 		limit:   limit,
 		msgCh:   msgCh,
 		reconCh: reconCh,
-		cache:   make([]*domain.TransactionPayload, 0, limit),
+		cache:   make([]*domain.Transaction, 0, limit),
 	}
 	return hm
 }
 
 type HistoryMixer struct {
 	limit   uint
-	msgCh   <-chan *domain.TransactionPayload
+	msgCh   <-chan *domain.Transaction
 	reconCh <-chan *domain.ReconciliationResp
 
-	cache   []*domain.TransactionPayload
+	cache   []*domain.Transaction
 	cacheMx sync.RWMutex
 }
 
-func (hm *HistoryMixer) History() []*domain.TransactionPayload {
+func (hm *HistoryMixer) History() []*domain.Transaction {
 	hm.cacheMx.RLock()
 	defer hm.cacheMx.RUnlock()
 
@@ -53,7 +53,7 @@ func (hm *HistoryMixer) Run(ctx context.Context) error {
 			// TODO: get min and max timestamp
 			// TODO: replace all between min-max
 
-			var tmp []*domain.TransactionPayload
+			var tmp []*domain.Transaction
 			for _, block := range recon.NextBlocks {
 				tmp = append(tmp, block.Data...)
 			}

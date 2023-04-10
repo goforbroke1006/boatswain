@@ -19,19 +19,19 @@ func TestMakeDecision(t *testing.T) {
 			currentID    = domain.BlockIndex(123)
 			previousHash = domain.GetSHA256(fmt.Sprintf("%d%s%d%s",
 				122, "fake", 1234567890, "no content"))
-			voteA = &domain.ConsensusVotePayload{
-				Index:        currentID,
-				Hash:         domain.GetSHA256(fmt.Sprintf("%d-%s-%d-%s", currentID, previousHash, ts, "vote A")),
-				PreviousHash: previousHash,
-				Timestamp:    ts,
-				Data:         nil,
+			voteA = &domain.Block{
+				ID:       currentID,
+				Hash:     domain.GetSHA256(fmt.Sprintf("%d-%s-%d-%s", currentID, previousHash, ts, "vote A")),
+				PrevHash: previousHash,
+				Ts:       ts,
+				Data:     nil,
 			}
-			voteB = &domain.ConsensusVotePayload{
-				Index:        currentID,
-				Hash:         domain.GetSHA256(fmt.Sprintf("%d-%s-%d-%s", currentID, previousHash, ts, "vote B")),
-				PreviousHash: previousHash,
-				Timestamp:    ts,
-				Data:         nil,
+			voteB = &domain.Block{
+				ID:       currentID,
+				Hash:     domain.GetSHA256(fmt.Sprintf("%d-%s-%d-%s", currentID, previousHash, ts, "vote B")),
+				PrevHash: previousHash,
+				Ts:       ts,
+				Data:     nil,
 			}
 		)
 
@@ -55,19 +55,19 @@ func TestMakeDecision(t *testing.T) {
 			currentID    = domain.BlockIndex(123)
 			previousHash = domain.GetSHA256(fmt.Sprintf("%d%s%d%s",
 				122, "fake", 1234567890, "no content"))
-			voteA = &domain.ConsensusVotePayload{
-				Index:        currentID,
-				Hash:         domain.GetSHA256(fmt.Sprintf("%d-%s-%d-%s", currentID, previousHash, ts, "vote A")),
-				PreviousHash: previousHash,
-				Timestamp:    ts,
-				Data:         nil,
+			voteA = &domain.Block{
+				ID:       currentID,
+				Hash:     domain.GetSHA256(fmt.Sprintf("%d-%s-%d-%s", currentID, previousHash, ts, "vote A")),
+				PrevHash: previousHash,
+				Ts:       ts,
+				Data:     nil,
 			}
-			voteB = &domain.ConsensusVotePayload{
-				Index:        currentID,
-				Hash:         domain.GetSHA256(fmt.Sprintf("%d-%s-%d-%s", currentID, previousHash, ts, "vote B")),
-				PreviousHash: previousHash,
-				Timestamp:    ts,
-				Data:         nil,
+			voteB = &domain.Block{
+				ID:       currentID,
+				Hash:     domain.GetSHA256(fmt.Sprintf("%d-%s-%d-%s", currentID, previousHash, ts, "vote B")),
+				PrevHash: previousHash,
+				Ts:       ts,
+				Data:     nil,
 			}
 		)
 

@@ -18,7 +18,7 @@ func TestHistoryMixer(t *testing.T) {
 		defer cancel()
 
 		var (
-			msgCh   = make(chan *domain.TransactionPayload)
+			msgCh   = make(chan *domain.Transaction)
 			reconCh = make(chan *domain.ReconciliationResp)
 		)
 
@@ -36,26 +36,26 @@ func TestHistoryMixer(t *testing.T) {
 		defer cancel()
 
 		var (
-			msgCh   = make(chan *domain.TransactionPayload)
+			msgCh   = make(chan *domain.Transaction)
 			reconCh = make(chan *domain.ReconciliationResp)
 		)
 
 		mixer := chat.NewHistoryMixer(10, msgCh, reconCh)
 		go func() { _ = mixer.Run(ctx) }()
 
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979113}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979112}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979111}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979110}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979109}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979108}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979107}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979106}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979105}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979104}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979103}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979102}
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979101}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979113}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979112}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979111}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979110}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979109}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979108}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979107}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979106}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979105}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979104}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979103}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979102}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979101}
 
 		<-time.After(time.Millisecond)
 
@@ -70,7 +70,7 @@ func TestHistoryMixer(t *testing.T) {
 		defer cancel()
 
 		var (
-			msgCh   = make(chan *domain.TransactionPayload)
+			msgCh   = make(chan *domain.Transaction)
 			reconCh = make(chan *domain.ReconciliationResp)
 		)
 
@@ -80,13 +80,13 @@ func TestHistoryMixer(t *testing.T) {
 		reconCh <- &domain.ReconciliationResp{
 			NextBlocks: []*domain.Block{
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979113},
 						{ID: uuid.New(), Timestamp: 1680979112},
 					},
 				},
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979111},
 						{ID: uuid.New(), Timestamp: 1680979110},
 					},
@@ -96,13 +96,13 @@ func TestHistoryMixer(t *testing.T) {
 		reconCh <- &domain.ReconciliationResp{
 			NextBlocks: []*domain.Block{
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979109},
 						{ID: uuid.New(), Timestamp: 1680979108},
 					},
 				},
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979107},
 						{ID: uuid.New(), Timestamp: 1680979106},
 					},
@@ -112,13 +112,13 @@ func TestHistoryMixer(t *testing.T) {
 		reconCh <- &domain.ReconciliationResp{
 			NextBlocks: []*domain.Block{
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979105},
 						{ID: uuid.New(), Timestamp: 1680979104},
 					},
 				},
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979103},
 						{ID: uuid.New(), Timestamp: 1680979102},
 						{ID: uuid.New(), Timestamp: 1680979101},
@@ -140,49 +140,49 @@ func TestHistoryMixer(t *testing.T) {
 		defer cancel()
 
 		var (
-			msgCh   = make(chan *domain.TransactionPayload)
+			msgCh   = make(chan *domain.Transaction)
 			reconCh = make(chan *domain.ReconciliationResp)
 		)
 
 		mixer := chat.NewHistoryMixer(10, msgCh, reconCh)
 		go func() { _ = mixer.Run(ctx) }()
 
-		msgCh <- &domain.TransactionPayload{ID: uuid.New(), Timestamp: 1680979113, Content: "wrong"}
+		msgCh <- &domain.Transaction{ID: uuid.New(), Timestamp: 1680979113, Content: "wrong"}
 
 		reconCh <- &domain.ReconciliationResp{
 			NextBlocks: []*domain.Block{
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979113, Content: "correct"},
 						{ID: uuid.New(), Timestamp: 1680979112},
 					},
 				},
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979111},
 						{ID: uuid.New(), Timestamp: 1680979110},
 					},
 				},
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979109},
 						{ID: uuid.New(), Timestamp: 1680979108},
 					},
 				},
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979107},
 						{ID: uuid.New(), Timestamp: 1680979106},
 					},
 				},
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979105},
 						{ID: uuid.New(), Timestamp: 1680979104},
 					},
 				},
 				{
-					Data: []*domain.TransactionPayload{
+					Data: []*domain.Transaction{
 						{ID: uuid.New(), Timestamp: 1680979103},
 						{ID: uuid.New(), Timestamp: 1680979102},
 						{ID: uuid.New(), Timestamp: 1680979101},

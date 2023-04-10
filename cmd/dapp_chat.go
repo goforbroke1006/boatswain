@@ -57,15 +57,15 @@ func NewDAppChat() *cobra.Command {
 			defer func() { _ = discoverySvc.Close() }()
 
 			msgStream, msgStreamErr := messaging.NewStreamBoth[
-				domain.TransactionPayload,
-				*domain.TransactionPayload,
+				domain.Transaction,
+				*domain.Transaction,
 			](
 				ctx, chatTopic, p2pPubSub, p2pHost.ID(), false)
 			if msgStreamErr != nil {
 				zap.L().Fatal("fail", zap.Error(msgStreamErr))
 			}
 
-			txStreamOut, txStreamOutErr := messaging.NewStreamOut[domain.TransactionPayload](
+			txStreamOut, txStreamOutErr := messaging.NewStreamOut[domain.Transaction](
 				ctx, transactionTopic, p2pPubSub)
 			if txStreamOutErr != nil {
 				zap.L().Fatal("fail", zap.Error(txStreamOutErr))

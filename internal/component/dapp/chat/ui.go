@@ -22,8 +22,8 @@ func NewChatUI(
 	chatTopic string,
 	nickName string,
 	historyMixer *HistoryMixer,
-	msgOut chan<- *domain.TransactionPayload,
-	txOut chan<- *domain.TransactionPayload,
+	msgOut chan<- *domain.Transaction,
+	txOut chan<- *domain.Transaction,
 ) *ChatUI {
 	return &ChatUI{
 		p2pHost:      p2pHost,
@@ -49,8 +49,8 @@ type ChatUI struct {
 
 	historyMixer *HistoryMixer
 
-	msgOut chan<- *domain.TransactionPayload
-	txOut  chan<- *domain.TransactionPayload
+	msgOut chan<- *domain.Transaction
+	txOut  chan<- *domain.Transaction
 }
 
 // Run starts the chat event loop in the background, then starts
@@ -117,7 +117,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 
 		// send message to room mates
 		// send message to node
-		tx := &domain.TransactionPayload{
+		tx := &domain.Transaction{
 			ID:            uuid.New(),
 			PeerSender:    ui.p2pHost.ID().String(),
 			PeerRecipient: "",

@@ -61,7 +61,7 @@ func (s blockStorage) GetLast(ctx context.Context) (*domain.Block, error) {
 		phash      string
 		ts         int64
 		dataAsJson string
-		data       []*domain.TransactionPayload
+		data       []*domain.Transaction
 	)
 
 	var lastBlock *domain.Block
