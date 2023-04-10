@@ -18,6 +18,7 @@ type ProofOfStake struct {
 
 func (p ProofOfStake) Verify(vote *domain.Block) error {
 	// TODO: implement me
+	// TODO: get last block, rebuild hash for next, check is equal
 	return nil
 }
 

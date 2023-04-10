@@ -112,5 +112,6 @@ func (s blockStorage) Store(ctx context.Context, blocks ...*domain.Block) error 
 
 func (s blockStorage) LoadLast(count uint64) ([]*domain.Block, error) {
 	//TODO implement me
+	_ = count
 	panic("implement me")
 }
