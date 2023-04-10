@@ -24,3 +24,8 @@ lint: lint/golang
 lint/golang:
 	golangci-lint run
 .PHONY: lint/golang
+
+build/release:
+	GOOS=linux   GOARCH=amd64 go build -o "./.build/release/${SERVICE_NAME}-linux-amd64" .
+	GOOS=darwin  GOARCH=amd64 go build -o "./.build/release/${SERVICE_NAME}-darwin-amd64" .
+	GOOS=windows GOARCH=amd64 go build -o "./.build/release/${SERVICE_NAME}-windows-amd64.exe" .

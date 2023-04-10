@@ -41,7 +41,6 @@ type BlockStorage interface {
 
 var Genesis = NewBlock(1, "", 644996700, []*TransactionPayload{
 	{
-		Blockchain:    "",
 		ID:            uuid.Nil,
 		PeerSender:    "",
 		PeerRecipient: "",
