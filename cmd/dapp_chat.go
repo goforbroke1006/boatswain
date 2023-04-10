@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os/signal"
 	"syscall"
 
@@ -19,18 +18,14 @@ import (
 
 func NewDAppChat() *cobra.Command {
 	const (
-		transactionTopic    = "boatswain/transaction"
-		reconciliationTopic = "boatswain/reconciliation"
+		chatTopic               = "boatswain/dapp/chat"
+		transactionTopic        = "boatswain/_transaction"
+		reconciliationRespTopic = "boatswain/_reconciliation/resp"
 
 		discoveryServiceTag        = "github.com/goforbroke1006/boatswain/dapp/chat"
 		allInterfacesAnyFreePortMA = "/ip4/0.0.0.0/tcp/0"
 
 		historyTailLength = 1024
-	)
-
-	var (
-		nickArg = chat.DefaultNick()
-		roomArg = "awesome-chat-room"
 	)
 
 	cmd := &cobra.Command{
@@ -44,6 +39,9 @@ func NewDAppChat() *cobra.Command {
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
 			}
+			zap.L().Info("host peer started", zap.String("id", p2pHost.ID().String()))
+
+			nickName := chat.DefaultNick(p2pHost)
 
 			// create a new PubSub service using the GossipSub router
 			p2pPubSub, p2pPubSubErr := pubsub.NewGossipSub(ctx, p2pHost)
@@ -58,18 +56,10 @@ func NewDAppChat() *cobra.Command {
 			}
 			defer func() { _ = discoverySvc.Close() }()
 
-			// TODO: validate room name
-			chatTopic := fmt.Sprintf("chat/%s", roomArg)
-
-			msgStreamIn, msgStreamInErr := messaging.NewStreamIn[*domain.TransactionPayload](
+			msgStream, msgStreamErr := messaging.NewStreamBoth[*domain.TransactionPayload](
 				ctx, chatTopic, p2pPubSub, p2pHost.ID(), false)
-			if msgStreamInErr != nil {
-				zap.L().Fatal("fail", zap.Error(msgStreamInErr))
-			}
-			msgStreamOut, msgStreamOutErr := messaging.NewStreamOut[domain.TransactionPayload](
-				ctx, chatTopic, p2pPubSub)
-			if msgStreamOutErr != nil {
-				zap.L().Fatal("fail", zap.Error(msgStreamOutErr))
+			if msgStreamErr != nil {
+				zap.L().Fatal("fail", zap.Error(msgStreamErr))
 			}
 
 			txStreamOut, txStreamOutErr := messaging.NewStreamOut[domain.TransactionPayload](
@@ -79,12 +69,12 @@ func NewDAppChat() *cobra.Command {
 			}
 
 			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[*domain.ReconciliationResp](
-				ctx, reconciliationTopic, p2pPubSub, p2pHost.ID(), true)
+				ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconStreamInErr))
 			}
 
-			historyMixer := chat.NewHistoryMixer(historyTailLength, msgStreamIn.In(), reconStreamIn.In())
+			historyMixer := chat.NewHistoryMixer(historyTailLength, msgStream.In(), reconStreamIn.In())
 			go func() {
 				if runErr := historyMixer.Run(ctx); runErr != nil {
 					panic(runErr)
@@ -93,10 +83,10 @@ func NewDAppChat() *cobra.Command {
 
 			// draw the UI
 			ui := chat.NewChatUI(
-				p2pPubSub,
-				nickArg, chatTopic,
+				p2pPubSub, chatTopic,
+				nickName,
 				historyMixer,
-				msgStreamOut.Out(),
+				msgStream.Out(),
 				txStreamOut.Out())
 			go func() {
 				if runErr := ui.Run(ctx); runErr != nil {
@@ -107,10 +97,6 @@ func NewDAppChat() *cobra.Command {
 			<-ctx.Done()
 		},
 	}
-
-	// parse some flags to set our nickname and the room to join
-	cmd.PersistentFlags().StringVar(&nickArg, "nick", nickArg, "nickname to use in chat. will be generated if empty")
-	cmd.PersistentFlags().StringVar(&roomArg, "room", roomArg, "name of chat room to join")
 
 	return cmd
 }

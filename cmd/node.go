@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -23,10 +23,10 @@ import (
 
 func NewNode() *cobra.Command {
 	const (
-		transactionTopic        = "boatswain/transaction"
-		consensusVoteTopic      = "boatswain/consensus-vote"
-		reconciliationReqTopic  = "boatswain/reconciliation/req"
-		reconciliationRespTopic = "boatswain/reconciliation/resp"
+		transactionTopic        = "boatswain/_transaction"
+		consensusVoteTopic      = "boatswain/_vote"
+		reconciliationReqTopic  = "boatswain/_reconciliation/req"
+		reconciliationRespTopic = "boatswain/_reconciliation/resp"
 
 		// discoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
 		discoveryServiceTag        = "github.com/goforbroke1006/boatswain/node"

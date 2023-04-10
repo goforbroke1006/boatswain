@@ -16,15 +16,15 @@ import (
 // It won't actually do anything until you call Run().
 func NewChatUI(
 	p2pPubSub *pubsub.PubSub,
-	nickname string,
 	chatTopic string,
+	nickName string,
 	historyMixer *HistoryMixer,
 	msgOut chan<- *domain.TransactionPayload,
 	txOut chan<- *domain.TransactionPayload,
 ) *ChatUI {
 	return &ChatUI{
 		p2pPubSub:    p2pPubSub,
-		nickname:     nickname,
+		nickName:     nickName,
 		chatTopic:    chatTopic,
 		historyMixer: historyMixer,
 		msgOut:       msgOut,
@@ -38,9 +38,9 @@ func NewChatUI(
 // chat prompt.
 type ChatUI struct {
 	p2pPubSub *pubsub.PubSub
-
-	nickname  string
 	chatTopic string
+
+	nickName string
 
 	historyMixer *HistoryMixer
 
@@ -57,7 +57,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 	msgBox := tview.NewTextView()
 	msgBox.SetDynamicColors(true)
 	msgBox.SetBorder(true)
-	msgBox.SetTitle(fmt.Sprintf("Room: %s", ui.chatTopic))
+	msgBox.SetTitle("Chat Room")
 	go func() {
 		for {
 			select {
@@ -68,7 +68,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 				msgBox.Clear()
 				for _, item := range history {
 					color := "red"
-					if item.PeerSender == ui.nickname {
+					if item.PeerSender == ui.nickName {
 						color = "green"
 					}
 					prompt := withColor(color, fmt.Sprintf("<%s>:", item.PeerSender))
@@ -85,7 +85,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 
 	// an input field for typing messages into
 	input := tview.NewInputField().
-		SetLabel(ui.nickname + " > ").
+		SetLabel(ui.nickName + " > ").
 		SetFieldWidth(0).
 		SetFieldBackgroundColor(tcell.ColorBlack)
 	// the done func is called when the user hits enter, or tabs out of the field
@@ -107,7 +107,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 		}
 
 		// display message in UI
-		prompt := withColor("green", fmt.Sprintf("<%s>:", ui.nickname))
+		prompt := withColor("green", fmt.Sprintf("<%s>:", ui.nickName))
 		_, _ = fmt.Fprintf(msgBox, "%s %s\n", prompt, line)
 
 		// TODO: send message to room mates
@@ -126,7 +126,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(10 * time.Second):
+			case <-time.After(5 * time.Second):
 				peers := ui.p2pPubSub.ListPeers(ui.chatTopic)
 				peersList.Clear()
 				for _, p := range peers {

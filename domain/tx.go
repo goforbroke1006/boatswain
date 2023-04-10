@@ -3,9 +3,8 @@ package domain
 import "github.com/google/uuid"
 
 type TransactionPayload struct {
-	MetaSenderPeerID string `json:"-"`
+	metaSenderPeerID string
 
-	Blockchain    string    `json:"blockchain"`
 	ID            uuid.UUID `json:"id"`
 	PeerSender    string    `json:"peer_sender"`
 	PeerRecipient string    `json:"peer_recipient"`
@@ -14,9 +13,9 @@ type TransactionPayload struct {
 }
 
 func (tp *TransactionPayload) SetSender(peerID string) {
-	tp.MetaSenderPeerID = peerID
+	tp.metaSenderPeerID = peerID
 }
 
 func (tp *TransactionPayload) GetSender() string {
-	return tp.MetaSenderPeerID
+	return tp.metaSenderPeerID
 }

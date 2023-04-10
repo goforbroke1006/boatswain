@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"os/user"
 
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// DefaultNick generates a nickname based on the $USER environment variable.
-func DefaultNick() string {
+// DefaultNick generates a nickName based on the $USER environment variable.
+func DefaultNick(p2pHost host.Host) string {
 	currentUser, _ := user.Current()
-	return currentUser.Username
+	return fmt.Sprintf("%s - %s", currentUser.Username, p2pHost.ID().String())
 }
 
 // shortID returns the last 8 chars of a base58-encoded peer id.
 func shortID(p peer.ID) string {
-	pretty := p.Pretty()
+	pretty := p.String()
 	return pretty[len(pretty)-8:]
 }
 

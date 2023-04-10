@@ -4,24 +4,23 @@
 
 Node:
 
-- <- "boatswain/transaction" topic
-- <- "boatswain/consensus-vote" topic
-- -> "boatswain/consensus-vote" topic
-- -> "boatswain/reconciliation/req" topic
-- <- "boatswain/reconciliation/resp" topic
+- <- "boatswain/_transaction" topic
+- <- "boatswain/_vote" topic
+- -> "boatswain/_vote" topic
+- -> "boatswain/_reconciliation/req" topic
+- <- "boatswain/_reconciliation/resp" topic
 
 DApp Chat:
 
-- <- "chat: <CHAT ID>" topic
-- -> "chat: <CHAT ID>" topic
-- -> "boatswain/transaction" topic
-- <- "boatswain/reconciliation/resp" topic
+- <- "boatswain/dapp/chat" topic
+- -> "boatswain/dapp/chat" topic
+- -> "boatswain/_transaction" topic
+- <- "boatswain/_reconciliation/resp" topic
 
-### Share new data inside topic "chat/cat-owners-worldwide"
+### Share new data inside topic "boatswain/dapp/chat"
 
 ```json
 {
-  "blockchain": "",
   "id": "<uuid>",
   "peer_sender": "peer-1",
   "peer_recipient": "",
@@ -34,7 +33,6 @@ DApp Chat:
 
 ```json
 {
-  "blockchain": "chat/cat-owners-worldwide",
   "id": "uuid",
   "peer_sender": "peer-1",
   "peer_recipient": "",
@@ -47,7 +45,6 @@ DApp Chat:
 
 ```json
 {
-  "blockchain": "chat/cat-owners-worldwide",
   "index": 123456,
   "hash": "bbbbbbbbbbb",
   "previousHash": "aaaaaaaaaaa",
