@@ -71,13 +71,19 @@ func NewNode() *cobra.Command {
 				zap.L().Fatal("fail", zap.Error(txStreamInErr))
 			}
 
-			voteStream, voteStreamErr := messaging.NewStreamBoth[domain.ConsensusVotePayload, *domain.ConsensusVotePayload](
+			voteStream, voteStreamErr := messaging.NewStreamBoth[
+				domain.ConsensusVotePayload,
+				*domain.ConsensusVotePayload,
+			](
 				ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID(), true)
 			if voteStreamErr != nil {
 				zap.L().Fatal("fail", zap.Error(voteStreamErr))
 			}
 
-			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[domain.ReconciliationResp](
+			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[
+				domain.ReconciliationResp,
+				*domain.ReconciliationResp,
+			](
 				ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconStreamInErr))
