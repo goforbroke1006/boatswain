@@ -41,6 +41,7 @@ func NewStreamBoth[T Income](
 	}
 
 	go s.readLoop()
+	go s.writeLoop()
 
 	return s, nil
 }
