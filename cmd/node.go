@@ -145,7 +145,6 @@ func NewNode() *cobra.Command {
 					zap.L().Fatal("fail", zap.Error(runErr))
 				}
 			}()
-			zap.L().Info("reconciliation finished", zap.Uint64("blocks", syncer.Count()))
 
 			healthcheck.Panel().SetReady()
 

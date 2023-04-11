@@ -23,7 +23,6 @@ func NewSyncer(
 		reconReqTopic: reconReqTopic,
 		reconOut:      reconOut,
 		reconIn:       reconIn,
-		blocksCount:   0,
 	}
 }
 
@@ -34,8 +33,6 @@ type Syncer struct {
 	reconReqTopic string
 	reconOut      chan<- *domain.ReconciliationReq
 	reconIn       <-chan *domain.ReconciliationResp
-
-	blocksCount uint64
 }
 
 func (s *Syncer) Run(ctx context.Context) error {
@@ -67,7 +64,7 @@ func (s *Syncer) Run(ctx context.Context) error {
 		}
 
 		s.reconOut <- &domain.ReconciliationReq{AfterIndex: lastBlock.ID}
-		zap.L().Info("reconciliation request", zap.Uint64("after", lastBlock.ID))
+		zap.L().Debug("reconciliation request", zap.Uint64("after", lastBlock.ID))
 
 	WaitAnswerLoop:
 		for {
@@ -103,13 +100,9 @@ func (s *Syncer) Run(ctx context.Context) error {
 				return storeErr
 			}
 
-			s.blocksCount += uint64(len(payload.NextBlocks))
+			zap.L().Info("reconciliation progress", zap.Int("blocks", len(payload.NextBlocks)))
 
 			break WaitAnswerLoop
 		}
 	}
-}
-
-func (s *Syncer) Count() uint64 {
-	return s.blocksCount
 }
