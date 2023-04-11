@@ -83,8 +83,8 @@ func (s *Syncer) Run(ctx context.Context) error {
 			}
 
 			if payload.AfterIndex != lastBlock.ID {
-				zap.L().Debug("skip answer",
-					zap.Uint64("got", payload.AfterIndex), zap.Uint64("want", lastBlock.ID))
+				//zap.L().Debug("skip answer",
+				//	zap.Uint64("got", payload.AfterIndex), zap.Uint64("want", lastBlock.ID))
 				continue // skip message for another nodes
 			}
 

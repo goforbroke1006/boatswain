@@ -116,15 +116,19 @@ func NewNode() *cobra.Command {
 					case <-ctx.Done():
 						return
 					case req := <-reconReqStream.In():
-						zap.L().Info("another node ask for blocks",
-							zap.String("peer", req.GetSender()),
-							zap.Uint64("after", req.AfterIndex))
-
 						blocks, blocksErr := blockStorage.LoadAfterBlock(ctx, req.AfterIndex, 128)
 						if blocksErr != nil {
 							zap.L().Error("load block fail", zap.Error(blocksErr))
 							continue ProcessingLoop
 						}
+						if len(blocks) == 0 {
+							break
+						}
+
+						zap.L().Info("send blocks",
+							zap.String("peer", req.GetSender()),
+							zap.Uint64("after", req.AfterIndex))
+
 						reconRespStream.Out() <- &domain.ReconciliationResp{
 							AfterIndex: req.AfterIndex,
 							NextBlocks: blocks,
