@@ -66,8 +66,8 @@ func (s *Syncer) Run(ctx context.Context) error {
 			return lastBlockErr
 		}
 
-		zap.L().Info("reconciliation request", zap.Uint64("after", lastBlock.ID))
 		s.reconOut <- &domain.ReconciliationReq{AfterIndex: lastBlock.ID}
+		zap.L().Info("reconciliation request", zap.Uint64("after", lastBlock.ID))
 
 	WaitAnswerLoop:
 		for {
@@ -83,11 +83,15 @@ func (s *Syncer) Run(ctx context.Context) error {
 			}
 
 			if payload.AfterIndex != lastBlock.ID {
+				zap.L().Debug("skip answer",
+					zap.Uint64("got", payload.AfterIndex), zap.Uint64("want", lastBlock.ID))
 				continue // skip message for another nodes
 			}
 
 			if len(payload.NextBlocks) == 0 {
-				return nil
+				zap.L().Info("no newest blocks")
+				time.Sleep(10 * time.Second)
+				break WaitAnswerLoop
 			}
 
 			// TODO: verify IDs are correct sequence
@@ -101,7 +105,7 @@ func (s *Syncer) Run(ctx context.Context) error {
 
 			s.blocksCount += uint64(len(payload.NextBlocks))
 
-			break
+			break WaitAnswerLoop
 		}
 	}
 }

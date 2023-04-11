@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	logger, _ := zap.NewProduction()
+	logger, _ := zap.NewDevelopment() // TODO: select on build
 	defer func() { _ = logger.Sync() }()
 	zap.ReplaceGlobals(logger)
 
