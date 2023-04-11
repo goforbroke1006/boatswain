@@ -3,7 +3,7 @@
 !/.build/release/.gitkeep
 /boatswain
 /boatswain.exe
-/*-blocks.db
 
+/*.db
 /**/*.gen.go
 /**/*.mock.go
