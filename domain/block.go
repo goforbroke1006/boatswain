@@ -58,6 +58,7 @@ type BlockStorage interface {
 	GetLast(ctx context.Context) (*Block, error)
 	Store(ctx context.Context, blocks ...*Block) error
 	LoadLast(count uint64) ([]*Block, error)
+	LoadAfterBlock(ctx context.Context, id BlockIndex, count uint64) ([]*Block, error)
 }
 
 var Genesis = NewBlock(1, "", time.Unix(644996700, 0), []*Transaction{

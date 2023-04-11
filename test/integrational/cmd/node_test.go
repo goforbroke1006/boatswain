@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -37,20 +38,17 @@ func TestNodeReconciliation(t *testing.T) {
 	currentState = append(currentState, domain.NewBlock(5, currentState[len(currentState)-1].Hash, time.Now(), nil))
 	currentState = append(currentState, domain.NewBlock(6, currentState[len(currentState)-1].Hash, time.Now(), nil))
 
-	// TODO: init and fill ./testdata/chat-blocks-node001.db
-	// TODO: init and fill ./testdata/chat-blocks-node002.db
-	// TODO: init and clear ./testdata/chat-blocks-node003.db
-	db1, db1Err := common.OpenDBConn("./testdata/chat-blocks-node001.db")
+	db1, db1Err := common.OpenDBConn("./testdata/blockchain-node001.db")
 	assert.NoError(t, db1Err)
 	mig1Err := common.ApplyMigrationFile(db1, "./../../../db/schema.sql")
 	assert.NoError(t, mig1Err)
 
-	db2, db2Err := common.OpenDBConn("./testdata/chat-blocks-node002.db")
+	db2, db2Err := common.OpenDBConn("./testdata/blockchain-node002.db")
 	assert.NoError(t, db2Err)
 	mig2Err := common.ApplyMigrationFile(db2, "./../../../db/schema.sql")
 	assert.NoError(t, mig2Err)
 
-	db3, db3Err := common.OpenDBConn("./testdata/chat-blocks-node003.db")
+	db3, db3Err := common.OpenDBConn("./testdata/blockchain-node003.db")
 	assert.NoError(t, db3Err)
 	mig3Err := common.ApplyMigrationFile(db3, "./../../../db/schema.sql")
 	assert.NoError(t, mig3Err)
@@ -80,7 +78,11 @@ func TestNodeReconciliation(t *testing.T) {
 	// wait for node-003 becomes READYz
 	waitReady(t, "http://localhost:48083/readyz", 10, 2*time.Second)
 
-	// ensure ./testdata/chat-blocks-node003.db has all blocks
+	printLogs(t, ctx, compose, "node-001")
+	printLogs(t, ctx, compose, "node-002")
+	printLogs(t, ctx, compose, "node-003")
+
+	// ensure ./testdata/blockchain-node003.db has all blocks
 	{
 		count1, _ := storage1.GetCount(ctx)
 		count2, _ := storage2.GetCount(ctx)
@@ -97,12 +99,21 @@ func waitReady(t *testing.T, addr string, retry uint, interval time.Duration) {
 		resp, err := http.Get(addr)
 		if err != nil {
 			t.Error(err)
-		}
-		if resp.StatusCode == http.StatusOK {
-			t.Log(addr, resp.StatusCode)
-			return
+		} else {
+			if resp.StatusCode == http.StatusOK {
+				t.Log(addr, resp.StatusCode)
+				return
+			}
 		}
 
 		time.Sleep(interval)
 	}
+	t.Error(addr, "is not ready")
+}
+
+func printLogs(t *testing.T, ctx context.Context, compose tc.ComposeStack, container string) {
+	node003Container, _ := compose.ServiceContainer(ctx, container)
+	node003LogsReader, _ := node003Container.Logs(ctx)
+	node003Logs, _ := io.ReadAll(node003LogsReader)
+	t.Log(string(node003Logs))
 }

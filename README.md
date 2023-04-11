@@ -17,3 +17,7 @@ make
 ./boatswain dapp chat
 
 ```
+
+### Useful links
+
+* https://ldej.nl/post/building-an-echo-application-with-libp2p/

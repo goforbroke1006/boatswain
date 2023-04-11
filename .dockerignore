@@ -1,9 +1,13 @@
 /.idea
+/.git
 /.build/
 /.docker-compose
 /docs
+/test
 /boatswain
 /boatswain.exe
+/docker-compose.yaml
+/README.md
 /setup.sh
 
 /**/*.gen.go

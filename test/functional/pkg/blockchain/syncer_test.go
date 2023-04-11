@@ -121,3 +121,8 @@ func (s *spyBlockStorage) LoadLast(count uint64) ([]*domain.Block, error) {
 	}
 	return result, nil
 }
+
+func (s *spyBlockStorage) LoadAfterBlock(ctx context.Context, id domain.BlockIndex, count uint64) ([]*domain.Block, error) {
+	//TODO implement me
+	panic("implement me")
+}

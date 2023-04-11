@@ -2,8 +2,6 @@ package blockchain
 
 import (
 	"context"
-	"time"
-
 	"go.uber.org/zap"
 
 	"github.com/goforbroke1006/boatswain/domain"
@@ -50,7 +48,7 @@ func (s *Syncer) Init(ctx context.Context) error {
 			return lastBlockErr
 		}
 
-		zap.L().Info("reconciliation request", zap.Uint64("after", uint64(lastBlock.ID)))
+		zap.L().Info("reconciliation request", zap.Uint64("after", lastBlock.ID))
 		s.reconOut <- &domain.ReconciliationReq{AfterIndex: lastBlock.ID}
 
 		for {
@@ -59,10 +57,7 @@ func (s *Syncer) Init(ctx context.Context) error {
 			case <-ctx.Done():
 				return ctx.Err()
 			case payload = <-s.reconIn:
-			// ok
-			case <-time.After(6 * time.Second):
-				zap.L().Warn("reconciliation timeout", zap.Uint64("after", uint64(lastBlock.ID)))
-				return nil
+				// ok
 			}
 
 			if payload.AfterIndex != lastBlock.ID {

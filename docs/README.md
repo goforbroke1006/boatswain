@@ -10,6 +10,9 @@ Node:
 - -> "boatswain/_reconciliation/req" topic
 - <- "boatswain/_reconciliation/resp" topic
 
+- <- "boatswain/_reconciliation/req" topic
+- -> "boatswain/_reconciliation/resp" topic
+
 DApp Chat:
 
 - <- "boatswain/dapp/chat" topic

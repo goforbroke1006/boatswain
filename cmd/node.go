@@ -62,7 +62,7 @@ func NewNode() *cobra.Command {
 			}
 			defer func() { _ = discoverySvc.Close() }()
 
-			db, dbErr := common.OpenDBConn("./chat-blocks.db")
+			db, dbErr := common.OpenDBConn("./blockchain.db")
 			if dbErr != nil {
 				zap.L().Fatal("open db connection fail", zap.Error(dbErr))
 			}
@@ -89,28 +89,59 @@ func NewNode() *cobra.Command {
 				zap.L().Fatal("fail", zap.Error(voteStreamErr))
 			}
 
-			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[
+			reconRespStream, reconRespStreamErr := messaging.NewStreamBoth[
 				domain.ReconciliationResp,
 				*domain.ReconciliationResp,
 			](
 				ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
-			if reconStreamInErr != nil {
-				zap.L().Fatal("fail", zap.Error(reconStreamInErr))
+			if reconRespStreamErr != nil {
+				zap.L().Fatal("fail", zap.Error(reconRespStreamErr))
 			}
-			reconStreamOut, reconStreamOutErr := messaging.NewStreamOut[domain.ReconciliationReq](
-				ctx, reconciliationReqTopic, p2pPubSub)
-			if reconStreamOutErr != nil {
-				zap.L().Fatal("fail", zap.Error(reconStreamOutErr))
+			reconReqStream, reconReqStreamErr := messaging.NewStreamBoth[
+				domain.ReconciliationReq,
+				*domain.ReconciliationReq,
+			](
+				ctx, reconciliationReqTopic, p2pPubSub, p2pHost.ID(), true)
+			if reconReqStreamErr != nil {
+				zap.L().Fatal("fail", zap.Error(reconReqStreamErr))
 			}
 
 			healthcheck.Panel().SetHealthy()
 
 			blockStorage := storage.NewBlockStorage(db)
 
-			syncer := blockchain.NewSyncer(blockStorage, reconStreamOut.Out(), reconStreamIn.In())
-			if runErr := syncer.Init(ctx); runErr != nil && !errors.Is(runErr, context.Canceled) {
+			go func() { // help another node do reconciliation
+				zap.L().Info("ready help with reconciliation")
+			ProcessingLoop:
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case req := <-reconReqStream.In():
+						zap.L().Info("another node ask for blocks",
+							zap.String("peer", req.GetSender()),
+							zap.Uint64("after", req.AfterIndex))
+
+						blocks, blocksErr := blockStorage.LoadAfterBlock(ctx, req.AfterIndex, 128)
+						if blocksErr != nil {
+							zap.L().Error("load block fail", zap.Error(blocksErr))
+							continue ProcessingLoop
+						}
+						reconRespStream.Out() <- &domain.ReconciliationResp{
+							AfterIndex: req.AfterIndex,
+							NextBlocks: blocks,
+						}
+					}
+				}
+			}()
+
+			syncer := blockchain.NewSyncer(blockStorage, reconReqStream.Out(), reconRespStream.In())
+			syncCtx, syncCancel := context.WithTimeout(ctx, 30*time.Second)
+			if runErr := syncer.Init(syncCtx); runErr != nil &&
+				!errors.Is(runErr, context.Canceled) && !errors.Is(runErr, context.DeadlineExceeded) {
 				zap.L().Fatal("fail", zap.Error(runErr))
 			}
+			syncCancel()
 			zap.L().Info("reconciliation finished", zap.Uint64("blocks", syncer.Count()))
 
 			healthcheck.Panel().SetReady()

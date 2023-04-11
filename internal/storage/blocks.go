@@ -119,3 +119,53 @@ func (s blockStorage) LoadLast(count uint64) ([]*domain.Block, error) {
 	_ = count
 	panic("implement me")
 }
+
+func (s blockStorage) LoadAfterBlock(ctx context.Context, id domain.BlockIndex, count uint64) ([]*domain.Block, error) {
+	const query = `
+		SELECT 
+			"index", "hash", "previous_hash", "timestamp", "data" 
+		FROM blocks 
+		WHERE "index" > ? 
+		ORDER BY "index" ASC 
+		LIMIT ?`
+
+	rows, rowsErr := s.db.QueryContext(ctx, query, id, count)
+	if rowsErr != nil {
+		return nil, rowsErr
+	}
+	defer func() { _ = rows.Close() }()
+
+	var (
+		index      uint64
+		hash       string
+		phash      string
+		ts         int64
+		dataAsJson string
+		data       []*domain.Transaction
+	)
+
+	var result []*domain.Block
+
+	for rows.Next() {
+		if scanErr := rows.Scan(&index, &hash, &phash, &ts, &dataAsJson); scanErr != nil {
+			return nil, scanErr
+		}
+
+		_ = json.Unmarshal([]byte(dataAsJson), &data)
+
+		block := &domain.Block{
+			ID:       index,
+			Hash:     domain.BlockHash(hash),
+			PrevHash: domain.BlockHash(phash),
+			Ts:       ts,
+			Data:     data,
+		}
+		result = append(result, block)
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return result, nil
+}
