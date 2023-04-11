@@ -69,13 +69,17 @@ func (s *Syncer) Run(ctx context.Context) error {
 		zap.L().Info("reconciliation request", zap.Uint64("after", lastBlock.ID))
 		s.reconOut <- &domain.ReconciliationReq{AfterIndex: lastBlock.ID}
 
+	WaitAnswerLoop:
 		for {
 			var payload *domain.ReconciliationResp
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case payload = <-s.reconIn:
-				// ok
+			// ok
+			case <-time.After(15 * time.Second):
+				zap.L().Warn("reconciliation response timeout")
+				break WaitAnswerLoop
 			}
 
 			if payload.AfterIndex != lastBlock.ID {
