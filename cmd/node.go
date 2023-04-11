@@ -4,7 +4,6 @@ import (
 	"context"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/goforbroke1006/go-healthcheck"
 	"github.com/libp2p/go-libp2p"
@@ -100,7 +99,7 @@ func NewNode() *cobra.Command {
 				domain.ReconciliationReq,
 				*domain.ReconciliationReq,
 			](
-				ctx, reconciliationReqTopic, p2pPubSub, p2pHost.ID(), false)
+				ctx, reconciliationReqTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconReqStreamErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconReqStreamErr))
 			}
@@ -110,7 +109,7 @@ func NewNode() *cobra.Command {
 			blockStorage := storage.NewBlockStorage(db)
 
 			go func() { // help another node do reconciliation
-				zap.L().Info("ready help with reconciliation")
+				zap.L().Info("ready to help with reconciliation")
 			ProcessingLoop:
 				for {
 					select {
@@ -134,13 +133,14 @@ func NewNode() *cobra.Command {
 				}
 			}()
 
-			syncer := blockchain.NewSyncer(blockStorage, reconReqStream.Out(), reconRespStream.In())
-			syncCtx, syncCancel := context.WithTimeout(ctx, 30*time.Second)
-			if runErr := syncer.Init(syncCtx); runErr != nil &&
-				!errors.Is(runErr, context.Canceled) && !errors.Is(runErr, context.DeadlineExceeded) {
-				zap.L().Fatal("fail", zap.Error(runErr))
-			}
-			syncCancel()
+			syncer := blockchain.NewSyncer(blockStorage,
+				p2pPubSub, reconciliationReqTopic, reconReqStream.Out(), reconRespStream.In())
+			go func() {
+				if runErr := syncer.Run(ctx); runErr != nil &&
+					!errors.Is(runErr, context.Canceled) && !errors.Is(runErr, context.DeadlineExceeded) {
+					zap.L().Fatal("fail", zap.Error(runErr))
+				}
+			}()
 			zap.L().Info("reconciliation finished", zap.Uint64("blocks", syncer.Count()))
 
 			healthcheck.Panel().SetReady()

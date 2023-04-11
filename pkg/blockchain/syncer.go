@@ -2,6 +2,9 @@ package blockchain
 
 import (
 	"context"
+	"time"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"go.uber.org/zap"
 
 	"github.com/goforbroke1006/boatswain/domain"
@@ -9,27 +12,33 @@ import (
 
 func NewSyncer(
 	storage domain.BlockStorage,
+	p2pPubSub *pubsub.PubSub,
+	reconReqTopic string,
 	reconOut chan<- *domain.ReconciliationReq,
 	reconIn <-chan *domain.ReconciliationResp,
 ) *Syncer {
 	return &Syncer{
-		storage:     storage,
-		reconOut:    reconOut,
-		reconIn:     reconIn,
-		blocksCount: 0,
+		storage:       storage,
+		p2pPubSub:     p2pPubSub,
+		reconReqTopic: reconReqTopic,
+		reconOut:      reconOut,
+		reconIn:       reconIn,
+		blocksCount:   0,
 	}
 }
 
 type Syncer struct {
 	storage domain.BlockStorage
 
-	reconOut chan<- *domain.ReconciliationReq
-	reconIn  <-chan *domain.ReconciliationResp
+	p2pPubSub     *pubsub.PubSub
+	reconReqTopic string
+	reconOut      chan<- *domain.ReconciliationReq
+	reconIn       <-chan *domain.ReconciliationResp
 
 	blocksCount uint64
 }
 
-func (s *Syncer) Init(ctx context.Context) error {
+func (s *Syncer) Run(ctx context.Context) error {
 	count, countErr := s.storage.GetCount(ctx)
 	if countErr != nil {
 		return countErr
@@ -40,6 +49,15 @@ func (s *Syncer) Init(ctx context.Context) error {
 		if storeErr != nil {
 			return storeErr
 		}
+	}
+
+	for {
+		peers := s.p2pPubSub.ListPeers(s.reconReqTopic)
+		if len(peers) > 0 {
+			zap.L().Info("peers for reconciliation found", zap.Int("count", len(peers)))
+			break
+		}
+		time.Sleep(time.Second)
 	}
 
 	for {
