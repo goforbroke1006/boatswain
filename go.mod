@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/gdamore/tcell/v2 v2.5.1
 	github.com/goforbroke1006/go-healthcheck v0.0.0-20230411080900-8c0f8e072add
+	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/libp2p/go-libp2p v0.25.0
 	github.com/libp2p/go-libp2p-pubsub v0.9.3
@@ -73,7 +74,6 @@ require (
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect

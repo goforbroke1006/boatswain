@@ -115,7 +115,7 @@ func NewNode() *cobra.Command {
 
 			healthcheck.Panel().SetReady()
 
-			collector := consensus.NewNextBlockGenerator(8, txStreamIn.In(),
+			collector := consensus.NewGenerator(8, txStreamIn.In(),
 				blockStorage, voteStream.Out())
 			go func() {
 				if runErr := collector.Run(ctx); runErr != nil {

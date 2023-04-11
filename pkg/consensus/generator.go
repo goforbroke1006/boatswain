@@ -9,10 +9,10 @@ import (
 	"github.com/goforbroke1006/boatswain/domain"
 )
 
-// NewNextBlockGenerator creates abstraction to collect transaction,
+// NewGenerator creates abstraction to collect transaction,
 // and if it enough to build new block,
 // then create next block, set hast and send as vote to another peers.
-func NewNextBlockGenerator(
+func NewGenerator(
 	limit uint,
 	txInCh <-chan *domain.Transaction,
 	blockStorage domain.BlockStorage,
