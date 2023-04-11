@@ -16,6 +16,9 @@ RUN go build -o application .
 
 FROM debian:bullseye AS main
 
+RUN apt update
+RUN apt install curl -y
+
 WORKDIR /
 
 COPY --from=builder /code/application /application

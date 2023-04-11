@@ -9,6 +9,10 @@ import (
 )
 
 func NewBlock(id BlockIndex, prevHash BlockHash, ts time.Time, data []*Transaction) *Block {
+	if data == nil {
+		data = make([]*Transaction, 0)
+	}
+
 	b := &Block{
 		ID:       id,
 		Hash:     "",

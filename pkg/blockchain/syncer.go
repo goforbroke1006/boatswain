@@ -31,7 +31,7 @@ type Syncer struct {
 	blocksCount uint64
 }
 
-func (s *Syncer) Run(ctx context.Context) error {
+func (s *Syncer) Init(ctx context.Context) error {
 	count, countErr := s.storage.GetCount(ctx)
 	if countErr != nil {
 		return countErr

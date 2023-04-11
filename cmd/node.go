@@ -6,6 +6,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/goforbroke1006/go-healthcheck"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
@@ -39,6 +40,8 @@ func NewNode() *cobra.Command {
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 
+			healthcheck.Panel().Start(ctx, healthcheck.DefaultAddr)
+
 			// create a new libp2p Host that listens on a random TCP port
 			p2pHost, p2pHostErr := libp2p.New(libp2p.ListenAddrStrings(allInterfacesAnyFreePortMA))
 			if p2pHostErr != nil {
@@ -59,11 +62,14 @@ func NewNode() *cobra.Command {
 			}
 			defer func() { _ = discoverySvc.Close() }()
 
-			db, dbErr := common.OpenDBConn()
+			db, dbErr := common.OpenDBConn("./chat-blocks.db")
 			if dbErr != nil {
 				zap.L().Fatal("open db connection fail", zap.Error(dbErr))
 			}
 			defer func() { _ = db.Close() }()
+			if migErr := common.ApplyMigrationFile(db, "./db/schema.sql"); migErr != nil {
+				zap.L().Fatal("migration fail", zap.Error(migErr))
+			}
 
 			txStreamIn, txStreamInErr := messaging.NewStreamIn[
 				domain.Transaction,
@@ -97,13 +103,17 @@ func NewNode() *cobra.Command {
 				zap.L().Fatal("fail", zap.Error(reconStreamOutErr))
 			}
 
+			healthcheck.Panel().SetHealthy()
+
 			blockStorage := storage.NewBlockStorage(db)
 
 			syncer := blockchain.NewSyncer(blockStorage, reconStreamOut.Out(), reconStreamIn.In())
-			if runErr := syncer.Run(ctx); runErr != nil && !errors.Is(runErr, context.Canceled) {
+			if runErr := syncer.Init(ctx); runErr != nil && !errors.Is(runErr, context.Canceled) {
 				zap.L().Fatal("fail", zap.Error(runErr))
 			}
 			zap.L().Info("reconciliation finished", zap.Uint64("blocks", syncer.Count()))
+
+			healthcheck.Panel().SetReady()
 
 			collector := consensus.NewNextBlockGenerator(8, txStreamIn.In(),
 				blockStorage, voteStream.Out())

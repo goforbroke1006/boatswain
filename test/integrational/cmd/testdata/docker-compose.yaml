@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+
+  node-001: &node-default
+    image: local.env/boatswain:dev
+    command: node
+    volumes:
+      - ./chat-blocks-node001.db:/chat-blocks.db
+    healthcheck:
+      test: curl --fail http://localhost:8080/healthz || exit 1
+      start_period: 5s
+      interval: 15s
+      retries: 5
+      timeout: 2s
+
+  node-002:
+    <<: *node-default
+    volumes:
+      - ./chat-blocks-node002.db:/chat-blocks.db
+
+  node-003:
+    <<: *node-default
+    ports:
+      - "48083:8080"
+    volumes:
+      - ./chat-blocks-node003.db:/chat-blocks.db

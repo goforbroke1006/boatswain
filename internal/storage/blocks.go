@@ -90,6 +90,10 @@ func (s blockStorage) GetLast(ctx context.Context) (*domain.Block, error) {
 }
 
 func (s blockStorage) Store(ctx context.Context, blocks ...*domain.Block) error {
+	if len(blocks) == 0 {
+		return nil
+	}
+
 	tx, txErr := s.db.BeginTx(ctx, nil)
 	if txErr != nil {
 		return txErr

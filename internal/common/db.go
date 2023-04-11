@@ -7,19 +7,21 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func OpenDBConn() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./chat-blocks.db")
+func OpenDBConn(sourcePath string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", sourcePath)
 	if err != nil {
 		return nil, err
 	}
-
-	schemaQuery, err := os.ReadFile("./db/schema.sql")
-	if err != nil {
-		return nil, err
-	}
-	if _, err := db.Exec(string(schemaQuery)); err != nil {
-		return nil, err
-	}
-
 	return db, nil
+}
+
+func ApplyMigrationFile(db *sql.DB, path string) error {
+	query, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	if _, err := db.Exec(string(query)); err != nil {
+		return err
+	}
+	return nil
 }

@@ -15,7 +15,7 @@ import (
 )
 
 // NewChatUI returns a new ChatUI struct that controls the text UI.
-// It won't actually do anything until you call Run().
+// It won't actually do anything until you call Init().
 func NewChatUI(
 	p2pHost host.Host,
 	p2pPubSub *pubsub.PubSub,

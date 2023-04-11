@@ -13,8 +13,8 @@ import (
 	"github.com/goforbroke1006/boatswain/pkg/blockchain"
 )
 
-func TestSyncerRun(t *testing.T) {
-	t.Run("positive - sync empty DB with blocks correctly", func(t *testing.T) {
+func TestSyncerInit(t *testing.T) {
+	t.Run("positive - with correct blocks", func(t *testing.T) {
 		blockStorage := newBlockStorageSpy(t)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -58,7 +58,7 @@ func TestSyncerRun(t *testing.T) {
 
 		syncer := blockchain.NewSyncer(blockStorage, reconReqOutCh, reconRestInCh)
 		go func() {
-			if runErr := syncer.Run(ctx); runErr != nil {
+			if runErr := syncer.Init(ctx); runErr != nil {
 				zap.L().Fatal("fail", zap.Error(runErr))
 			}
 		}()
@@ -69,12 +69,16 @@ func TestSyncerRun(t *testing.T) {
 		assert.Equalf(t, domain.BlockIndex(12), lastBlock.ID,
 			"want %d got %d", 12, lastBlock.ID)
 	})
+
+	t.Run("negative - with wrong blocks", func(t *testing.T) {
+		// TODO:
+	})
 }
 
 func newBlockStorageSpy(t *testing.T) *spyBlockStorage {
 	return &spyBlockStorage{
-		t:             t,
-		inMemoryCache: []*domain.Block{},
+		t:     t,
+		cache: []*domain.Block{},
 	}
 }
 
@@ -83,26 +87,26 @@ var _ domain.BlockStorage = (*spyBlockStorage)(nil)
 type spyBlockStorage struct {
 	t *testing.T
 
-	inMemoryCache []*domain.Block
+	cache []*domain.Block
 }
 
 func (s *spyBlockStorage) GetCount(_ context.Context) (uint64, error) {
-	count := len(s.inMemoryCache)
+	count := len(s.cache)
 	s.t.Logf("count %d", count)
 	return uint64(count), nil
 }
 
 func (s *spyBlockStorage) GetLast(_ context.Context) (*domain.Block, error) {
 	s.t.Log("last 1")
-	if len(s.inMemoryCache) == 0 {
+	if len(s.cache) == 0 {
 		return nil, errors.New("not found")
 	}
-	return s.inMemoryCache[len(s.inMemoryCache)-1], nil
+	return s.cache[len(s.cache)-1], nil
 }
 
 func (s *spyBlockStorage) Store(_ context.Context, blocks ...*domain.Block) error {
 	s.t.Logf("store %d", len(blocks))
-	s.inMemoryCache = append(s.inMemoryCache, blocks...)
+	s.cache = append(s.cache, blocks...)
 	return nil
 }
 
@@ -110,10 +114,10 @@ func (s *spyBlockStorage) LoadLast(count uint64) ([]*domain.Block, error) {
 	s.t.Logf("last %d", count)
 
 	var result []*domain.Block
-	if len(s.inMemoryCache) > int(count) {
-		result = s.inMemoryCache[len(s.inMemoryCache)-int(count):]
+	if len(s.cache) > int(count) {
+		result = s.cache[len(s.cache)-int(count):]
 	} else {
-		result = s.inMemoryCache
+		result = s.cache
 	}
 	return result, nil
 }
