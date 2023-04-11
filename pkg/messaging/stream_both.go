@@ -3,6 +3,7 @@ package messaging
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -92,7 +93,7 @@ func (s StreamBoth[Type, PtrType]) readLoop() {
 		err = json.Unmarshal(msg.Data, obj)
 		if err != nil {
 			// message has invalid format
-			// TODO: add warning
+			fmt.Println(err.Error())
 			continue
 		}
 		// send valid messages onto the Messages channel

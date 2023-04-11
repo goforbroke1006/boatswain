@@ -17,7 +17,6 @@ import (
 	"github.com/goforbroke1006/boatswain/internal/common"
 	"github.com/goforbroke1006/boatswain/internal/storage"
 	"github.com/goforbroke1006/boatswain/pkg/blockchain"
-	"github.com/goforbroke1006/boatswain/pkg/consensus"
 	"github.com/goforbroke1006/boatswain/pkg/discovery"
 	"github.com/goforbroke1006/boatswain/pkg/messaging"
 )
@@ -71,23 +70,23 @@ func NewNode() *cobra.Command {
 				zap.L().Fatal("migration fail", zap.Error(migErr))
 			}
 
-			txStreamIn, txStreamInErr := messaging.NewStreamIn[
-				domain.Transaction,
-				*domain.Transaction,
-			](
-				ctx, transactionTopic, p2pPubSub, p2pHost.ID(), true)
-			if txStreamInErr != nil {
-				zap.L().Fatal("fail", zap.Error(txStreamInErr))
-			}
+			//txStreamIn, txStreamInErr := messaging.NewStreamIn[
+			//	domain.Transaction,
+			//	*domain.Transaction,
+			//](
+			//	ctx, transactionTopic, p2pPubSub, p2pHost.ID(), true)
+			//if txStreamInErr != nil {
+			//	zap.L().Fatal("fail", zap.Error(txStreamInErr))
+			//}
 
-			voteStream, voteStreamErr := messaging.NewStreamBoth[
-				domain.Block,
-				*domain.Block,
-			](
-				ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID(), true)
-			if voteStreamErr != nil {
-				zap.L().Fatal("fail", zap.Error(voteStreamErr))
-			}
+			//voteStream, voteStreamErr := messaging.NewStreamBoth[
+			//	domain.Block,
+			//	*domain.Block,
+			//](
+			//	ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID(), true)
+			//if voteStreamErr != nil {
+			//	zap.L().Fatal("fail", zap.Error(voteStreamErr))
+			//}
 
 			reconRespStream, reconRespStreamErr := messaging.NewStreamBoth[
 				domain.ReconciliationResp,
@@ -101,7 +100,7 @@ func NewNode() *cobra.Command {
 				domain.ReconciliationReq,
 				*domain.ReconciliationReq,
 			](
-				ctx, reconciliationReqTopic, p2pPubSub, p2pHost.ID(), true)
+				ctx, reconciliationReqTopic, p2pPubSub, p2pHost.ID(), false)
 			if reconReqStreamErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconReqStreamErr))
 			}
@@ -146,47 +145,47 @@ func NewNode() *cobra.Command {
 
 			healthcheck.Panel().SetReady()
 
-			collector := consensus.NewGenerator(8, txStreamIn.In(),
-				blockStorage, voteStream.Out())
-			go func() {
-				if runErr := collector.Run(ctx); runErr != nil {
-					zap.L().Fatal("fail", zap.Error(runErr))
-				}
-			}()
+			//collector := consensus.NewGenerator(8, txStreamIn.In(),
+			//	blockStorage, voteStream.Out())
+			//go func() {
+			//	if runErr := collector.Run(ctx); runErr != nil {
+			//		zap.L().Fatal("fail", zap.Error(runErr))
+			//	}
+			//}()
 
-			posConsensus := consensus.NewProofOfStake()
-			go func() {
-				for vote := range voteStream.In() {
-					if verifyErr := posConsensus.Verify(vote); verifyErr != nil {
-						zap.L().Error("vote verify fail", zap.Error(verifyErr))
-					}
-					zap.L().Info("vote", zap.Uint64("block-id", uint64(vote.ID)))
-					posConsensus.Append(vote, vote.GetSender())
-				}
-			}()
-			go func() {
-				for {
-					// TODO: on cron make decision
-					decision, err := posConsensus.MakeDecision(123)
-					if err != nil {
-						zap.L().Error("make decision fail", zap.Error(err))
-						continue
-					}
-
-					if decision == nil {
-						time.Sleep(10 * time.Second)
-						continue
-						// FIXME: not finished and produce nil-pointer panic
-					}
-
-					if storeErr := blockStorage.Store(ctx, decision); storeErr != nil {
-						zap.L().Error("block store fail", zap.Error(storeErr))
-						continue
-					}
-
-					posConsensus.Reset()
-				}
-			}()
+			//posConsensus := consensus.NewProofOfStake()
+			//go func() {
+			//	for vote := range voteStream.In() {
+			//		if verifyErr := posConsensus.Verify(vote); verifyErr != nil {
+			//			zap.L().Error("vote verify fail", zap.Error(verifyErr))
+			//		}
+			//		zap.L().Info("vote", zap.Uint64("block-id", uint64(vote.ID)))
+			//		posConsensus.Append(vote, vote.GetSender())
+			//	}
+			//}()
+			//go func() {
+			//	for {
+			//		// TODO: on cron make decision
+			//		decision, err := posConsensus.MakeDecision(123)
+			//		if err != nil {
+			//			zap.L().Error("make decision fail", zap.Error(err))
+			//			continue
+			//		}
+			//
+			//		if decision == nil {
+			//			time.Sleep(10 * time.Second)
+			//			continue
+			//			// FIXME: not finished and produce nil-pointer panic
+			//		}
+			//
+			//		if storeErr := blockStorage.Store(ctx, decision); storeErr != nil {
+			//			zap.L().Error("block store fail", zap.Error(storeErr))
+			//			continue
+			//		}
+			//
+			//		posConsensus.Reset()
+			//	}
+			//}()
 
 			<-ctx.Done()
 		},
