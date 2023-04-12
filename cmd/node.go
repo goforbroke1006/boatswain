@@ -40,12 +40,14 @@ func NewNode() *cobra.Command {
 
 			healthcheck.Panel().Start(ctx, healthcheck.DefaultAddr)
 
-			// create a new libp2p Host that listens on a random TCP port
 			p2pHost, p2pHostErr := libp2p.New(libp2p.ListenAddrStrings(allInterfacesAnyFreePortMA))
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
 			}
-			zap.L().Info("host peer started", zap.String("id", p2pHost.ID().String()))
+			defer func() { _ = p2pHost.Close() }()
+			zap.L().Info("host peer started",
+				zap.String("peer-id", p2pHost.ID().String()),
+				zap.Any("addresses", p2pHost.Addrs()))
 
 			// create a new PubSub service using the GossipSub router
 			p2pPubSub, p2pPubSubErr := pubsub.NewGossipSub(ctx, p2pHost)
@@ -72,8 +74,7 @@ func NewNode() *cobra.Command {
 			//txStreamIn, txStreamInErr := messaging.NewStreamIn[
 			//	domain.Transaction,
 			//	*domain.Transaction,
-			//](
-			//	ctx, transactionTopic, p2pPubSub, p2pHost.ID(), true)
+			//](ctx, transactionTopic, p2pPubSub, p2pHost.ID(), true)
 			//if txStreamInErr != nil {
 			//	zap.L().Fatal("fail", zap.Error(txStreamInErr))
 			//}
@@ -81,8 +82,7 @@ func NewNode() *cobra.Command {
 			//voteStream, voteStreamErr := messaging.NewStreamBoth[
 			//	domain.Block,
 			//	*domain.Block,
-			//](
-			//	ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID(), true)
+			//](ctx, consensusVoteTopic, p2pPubSub, p2pHost.ID(), true)
 			//if voteStreamErr != nil {
 			//	zap.L().Fatal("fail", zap.Error(voteStreamErr))
 			//}
@@ -90,8 +90,7 @@ func NewNode() *cobra.Command {
 			reconRespStream, reconRespStreamErr := messaging.NewStreamBoth[
 				domain.ReconciliationResp,
 				*domain.ReconciliationResp,
-			](
-				ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
+			](ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconRespStreamErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconRespStreamErr))
 			}

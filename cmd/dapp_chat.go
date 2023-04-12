@@ -34,12 +34,14 @@ func NewDAppChat() *cobra.Command {
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 
-			// create a new p2p Host that listens on a random TCP port
 			p2pHost, p2pHostErr := libp2p.New(libp2p.ListenAddrStrings(allInterfacesAnyFreePortMA))
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
 			}
-			zap.L().Info("host peer started", zap.String("id", p2pHost.ID().String()))
+			defer func() { _ = p2pHost.Close() }()
+			zap.L().Info("host peer started",
+				zap.String("peer-id", p2pHost.ID().String()),
+				zap.Any("addresses", p2pHost.Addrs()))
 
 			nickName := chat.DefaultNick(p2pHost)
 
@@ -59,8 +61,7 @@ func NewDAppChat() *cobra.Command {
 			msgStream, msgStreamErr := messaging.NewStreamBoth[
 				domain.Transaction,
 				*domain.Transaction,
-			](
-				ctx, chatTopic, p2pPubSub, p2pHost.ID(), false)
+			](ctx, chatTopic, p2pPubSub, p2pHost.ID(), false)
 			if msgStreamErr != nil {
 				zap.L().Fatal("fail", zap.Error(msgStreamErr))
 			}
@@ -74,8 +75,7 @@ func NewDAppChat() *cobra.Command {
 			reconStreamIn, reconStreamInErr := messaging.NewStreamIn[
 				domain.ReconciliationResp,
 				*domain.ReconciliationResp,
-			](
-				ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
+			](ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
 			if reconStreamInErr != nil {
 				zap.L().Fatal("fail", zap.Error(reconStreamInErr))
 			}
