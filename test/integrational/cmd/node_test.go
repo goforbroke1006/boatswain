@@ -77,7 +77,7 @@ func TestNodeReconciliation(t *testing.T) {
 
 	// wait for node-003 becomes READYz
 	waitReady(t, "http://localhost:48083/readyz", 10, 2*time.Second)
-	time.Sleep(30 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	printLogs(t, ctx, compose, "node-001")
 	printLogs(t, ctx, compose, "node-002")
