@@ -2,30 +2,24 @@ package cmd
 
 import (
 	"context"
+	"github.com/multiformats/go-multiaddr"
 	"os/signal"
 	"syscall"
 
+	"github.com/goforbroke1006/boatswain/pkg/discovery/discovery_dht"
 	"github.com/goforbroke1006/go-healthcheck"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-
-	"github.com/goforbroke1006/boatswain/domain"
-	"github.com/goforbroke1006/boatswain/internal/common"
-	"github.com/goforbroke1006/boatswain/internal/storage"
-	"github.com/goforbroke1006/boatswain/pkg/blockchain"
-	"github.com/goforbroke1006/boatswain/pkg/discovery"
-	"github.com/goforbroke1006/boatswain/pkg/messaging"
 )
 
 func NewNode() *cobra.Command {
 	const (
-		transactionTopic        = "boatswain/_transaction"
-		consensusVoteTopic      = "boatswain/_vote"
-		reconciliationReqTopic  = "boatswain/_reconciliation/req"
-		reconciliationRespTopic = "boatswain/_reconciliation/resp"
+		//transactionTopic        = "boatswain/_transaction"
+		//consensusVoteTopic      = "boatswain/_vote"
+		//reconciliationReqTopic  = "boatswain/_reconciliation/req"
+		//reconciliationRespTopic = "boatswain/_reconciliation/resp"
 
 		// discoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
 		discoveryServiceTag        = "github.com/goforbroke1006/boatswain/node"
@@ -54,22 +48,34 @@ func NewNode() *cobra.Command {
 			if p2pPubSubErr != nil {
 				zap.L().Fatal("initialize gossip sub fail", zap.Error(p2pPubSubErr))
 			}
+			_ = p2pPubSub
 
-			// setup local mDNS discoverySvc
-			discoverySvc := discovery.NewDiscovery(p2pHost, discoveryServiceTag)
-			if discoveryErr := discoverySvc.Start(); discoveryErr != nil {
-				zap.L().Fatal("initialize gossip sub fail", zap.Error(discoveryErr))
-			}
-			defer func() { _ = discoverySvc.Close() }()
+			//// setup local mDNS discoverySvc
+			//discoverySvc := mdns.NewDiscovery(p2pHost, discoveryServiceTag)
+			//if discoveryErr := discoverySvc.Start(); discoveryErr != nil {
+			//	zap.L().Fatal("initialize gossip sub fail", zap.Error(discoveryErr))
+			//}
+			//defer func() { _ = discoverySvc.Close() }()
 
-			db, dbErr := common.OpenDBConn("./blockchain.db")
-			if dbErr != nil {
-				zap.L().Fatal("open db connection fail", zap.Error(dbErr))
+			peer1, _ := multiaddr.NewMultiaddr("/ip4/10.1.0.101/tcp/0")
+			peer2, _ := multiaddr.NewMultiaddr("/ip4/10.2.0.201/tcp/0")
+			bootstrapPeers := []multiaddr.Multiaddr{peer1, peer2}
+
+			dht, dhtErr := discovery_dht.NewKDHT(ctx, p2pHost, bootstrapPeers)
+			if dhtErr != nil {
+				zap.L().Fatal("initialize DHT discovery fail", zap.Error(dhtErr))
 			}
-			defer func() { _ = db.Close() }()
-			if migErr := common.ApplyMigrationFile(db, "./db/schema.sql"); migErr != nil {
-				zap.L().Fatal("migration fail", zap.Error(migErr))
-			}
+
+			go discovery_dht.Discover(ctx, p2pHost, dht, "github.com/goforbroke1006/boatswain")
+
+			//db, dbErr := common.OpenDBConn("./blockchain.db")
+			//if dbErr != nil {
+			//	zap.L().Fatal("open db connection fail", zap.Error(dbErr))
+			//}
+			//defer func() { _ = db.Close() }()
+			//if migErr := common.ApplyMigrationFile(db, "./db/schema.sql"); migErr != nil {
+			//	zap.L().Fatal("migration fail", zap.Error(migErr))
+			//}
 
 			//txStreamIn, txStreamInErr := messaging.NewStreamIn[
 			//	domain.Transaction,
@@ -87,63 +93,64 @@ func NewNode() *cobra.Command {
 			//	zap.L().Fatal("fail", zap.Error(voteStreamErr))
 			//}
 
-			reconRespStream, reconRespStreamErr := messaging.NewStreamBoth[
-				domain.ReconciliationResp,
-				*domain.ReconciliationResp,
-			](ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
-			if reconRespStreamErr != nil {
-				zap.L().Fatal("fail", zap.Error(reconRespStreamErr))
-			}
-			reconReqStream, reconReqStreamErr := messaging.NewStreamBoth[
-				domain.ReconciliationReq,
-				*domain.ReconciliationReq,
-			](
-				ctx, reconciliationReqTopic, p2pPubSub, p2pHost.ID(), true)
-			if reconReqStreamErr != nil {
-				zap.L().Fatal("fail", zap.Error(reconReqStreamErr))
-			}
+			//reconRespStream, reconRespStreamErr := messaging.NewStreamBoth[
+			//	domain.ReconciliationResp,
+			//	*domain.ReconciliationResp,
+			//](ctx, reconciliationRespTopic, p2pPubSub, p2pHost.ID(), true)
+			//if reconRespStreamErr != nil {
+			//	zap.L().Fatal("fail", zap.Error(reconRespStreamErr))
+			//}
+			//reconReqStream, reconReqStreamErr := messaging.NewStreamBoth[
+			//	domain.ReconciliationReq,
+			//	*domain.ReconciliationReq,
+			//](
+			//	ctx, reconciliationReqTopic, p2pPubSub, p2pHost.ID(), true)
+			//if reconReqStreamErr != nil {
+			//	zap.L().Fatal("fail", zap.Error(reconReqStreamErr))
+			//}
 
 			healthcheck.Panel().SetHealthy()
 
-			blockStorage := storage.NewBlockStorage(db)
+			//blockStorage := storage.NewBlockStorage(db)
+			//_ = blockStorage
 
-			go func() { // help another node do reconciliation
-				zap.L().Info("ready to help with reconciliation")
-			ProcessingLoop:
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case req := <-reconReqStream.In():
-						blocks, blocksErr := blockStorage.LoadAfterBlock(ctx, req.AfterIndex, 128)
-						if blocksErr != nil {
-							zap.L().Error("load block fail", zap.Error(blocksErr))
-							continue ProcessingLoop
-						}
-						if len(blocks) == 0 {
-							break
-						}
-
-						zap.L().Info("send blocks",
-							zap.String("peer", req.GetSender()),
-							zap.Uint64("after", req.AfterIndex))
-
-						reconRespStream.Out() <- &domain.ReconciliationResp{
-							AfterIndex: req.AfterIndex,
-							NextBlocks: blocks,
-						}
-					}
-				}
-			}()
-
-			syncer := blockchain.NewSyncer(blockStorage,
-				p2pPubSub, reconciliationReqTopic, reconReqStream.Out(), reconRespStream.In())
-			go func() {
-				if runErr := syncer.Run(ctx); runErr != nil &&
-					!errors.Is(runErr, context.Canceled) && !errors.Is(runErr, context.DeadlineExceeded) {
-					zap.L().Fatal("fail", zap.Error(runErr))
-				}
-			}()
+			//go func() { // help another node do reconciliation
+			//	zap.L().Info("ready to help with reconciliation")
+			//ProcessingLoop:
+			//	for {
+			//		select {
+			//		case <-ctx.Done():
+			//			return
+			//		case req := <-reconReqStream.In():
+			//			blocks, blocksErr := blockStorage.LoadAfterBlock(ctx, req.AfterIndex, 128)
+			//			if blocksErr != nil {
+			//				zap.L().Error("load block fail", zap.Error(blocksErr))
+			//				continue ProcessingLoop
+			//			}
+			//			if len(blocks) == 0 {
+			//				break
+			//			}
+			//
+			//			zap.L().Info("send blocks",
+			//				zap.String("peer", req.GetSender()),
+			//				zap.Uint64("after", req.AfterIndex))
+			//
+			//			reconRespStream.Out() <- &domain.ReconciliationResp{
+			//				AfterIndex: req.AfterIndex,
+			//				NextBlocks: blocks,
+			//			}
+			//		}
+			//	}
+			//}()
+			//
+			//syncer := blockchain.NewSyncer(blockStorage,
+			//	p2pPubSub, reconciliationReqTopic, reconReqStream.Out(), reconRespStream.In())
+			//go func() {
+			//	if runErr := syncer.Run(ctx); runErr != nil &&
+			//		!errors.Is(runErr, context.Canceled) && !errors.Is(runErr, context.DeadlineExceeded) {
+			//		zap.L().Fatal("fail", zap.Error(runErr))
+			//	}
+			//}()
 
 			healthcheck.Panel().SetReady()
 

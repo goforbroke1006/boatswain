@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/goforbroke1006/boatswain/pkg/discovery/mdns"
 	"os/signal"
 	"syscall"
 
@@ -12,7 +13,6 @@ import (
 
 	"github.com/goforbroke1006/boatswain/domain"
 	"github.com/goforbroke1006/boatswain/internal/component/dapp/chat"
-	"github.com/goforbroke1006/boatswain/pkg/discovery"
 	"github.com/goforbroke1006/boatswain/pkg/messaging"
 )
 
@@ -52,7 +52,7 @@ func NewDAppChat() *cobra.Command {
 			}
 
 			// setup local mDNS discoverySvc
-			discoverySvc := discovery.NewDiscovery(p2pHost, discoveryServiceTag)
+			discoverySvc := mdns.NewDiscovery(p2pHost, discoveryServiceTag)
 			if discoveryErr := discoverySvc.Start(); discoveryErr != nil {
 				zap.L().Fatal("initialize gossip sub fail", zap.Error(discoveryErr))
 			}

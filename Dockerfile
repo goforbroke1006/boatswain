@@ -10,7 +10,7 @@ ADD go.sum .
 RUN go mod download -x
 
 COPY . .
-ENV CGO_ENABLED=1
+ENV CGO_ENABLED=0
 RUN go build -o application -v .
 
 

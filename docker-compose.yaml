@@ -2,10 +2,58 @@ version: "3.9"
 
 services:
 
-  chat-member-001:
-    image: local.env/boatswain:dev
-    command: node
+  minimal:
+    image: busybox:1
+    depends_on:
+      node-001: { condition: service_started }
+      node-002: { condition: service_started }
+      node-003: { condition: service_started }
+      node-004: { condition: service_started }
+      node-005: { condition: service_started }
 
-  chat-member-002:
-    image: local.env/boatswain:dev
+  node-001: &node
+    image: github.com/goforbroke1006/boatswain:dev
     command: node
+    volumes:
+      - ./:/code/
+    networks:
+      subnet01:
+        ipv4_address: 10.1.0.101
+
+  node-002:
+    <<: *node
+    networks:
+      subnet01:
+        ipv4_address: 10.1.0.102
+
+  node-003:
+    <<: *node
+    networks:
+      subnet01:
+        ipv4_address: 10.1.0.103
+
+  node-004:
+    <<: *node
+    networks:
+      subnet02:
+        ipv4_address: 10.2.0.201
+
+  node-005:
+    <<: *node
+    networks:
+      subnet02:
+        ipv4_address: 10.2.0.202
+
+networks:
+  subnet01:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.1.0.0/16
+          gateway: 10.1.0.1
+  subnet02:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.2.0.0/16
+          gateway: 10.2.0.1

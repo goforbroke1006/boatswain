@@ -1,4 +1,4 @@
-package discovery
+package mdns
 
 import (
 	"context"
@@ -24,7 +24,8 @@ type discoveryNotifee struct {
 // the PubSub system will automatically start interacting with them if they also
 // support PubSub.
 func (n *discoveryNotifee) HandlePeerFound(addInfo peer.AddrInfo) {
-	//fmt.Printf("discovered new peer %s\n", addInfo.ID.Pretty())
+	fmt.Printf("discovered new peer %s\n", addInfo.String())
+
 	err := n.h.Connect(context.Background(), addInfo)
 	if err != nil {
 		fmt.Printf("error connecting to peer %s: %s\n", addInfo.ID.String(), err)
