@@ -1,6 +1,6 @@
 /.idea/
-/.build/release/
-!/.build/release/.gitkeep
+/.build/
+!/.build/**/.gitkeep
 /boatswain
 /boatswain.exe
 

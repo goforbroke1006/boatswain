@@ -1,0 +1,4 @@
+/bootstrap-*/.boatswain/keys/*_key
+!/bootstrap-*/.boatswain/keys/.gitkeep
+/node-any/.boatswain/peers.txt
+/node-*/.boatswain/keys

@@ -5,55 +5,85 @@ services:
   minimal:
     image: busybox:1
     depends_on:
-      node-001: { condition: service_started }
-      node-002: { condition: service_started }
-      node-003: { condition: service_started }
-      node-004: { condition: service_started }
-      node-005: { condition: service_started }
+      node-001: { condition: service_healthy }
+      node-002: { condition: service_healthy }
+      node-003: { condition: service_healthy }
+      node-004: { condition: service_healthy }
+      node-005: { condition: service_healthy }
 
   node-001: &node
     image: github.com/goforbroke1006/boatswain:dev
     command: node
     volumes:
       - ./:/code/
-    networks:
-      subnet01:
-        ipv4_address: 10.1.0.101
+      - ./.docker-compose/node-001/.boatswain/keys/:/root/.boatswain/keys/:rw
+      - ./.docker-compose/node-any/.boatswain/peers.txt:/root/.boatswain/peers.txt:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/readyz"]
+      start_period: 30s
+      interval: 5s
+      retries: 10
+      timeout: 5s
+    depends_on:
+      bootstrap-1:
+        condition: service_healthy
+      bootstrap-2:
+        condition: service_healthy
+    networks: { subnet01: ~ }
 
   node-002:
     <<: *node
-    networks:
-      subnet01:
-        ipv4_address: 10.1.0.102
+    volumes:
+      - ./:/code/
+      - ./.docker-compose/node-002/.boatswain/keys/:/root/.boatswain/keys/:rw
+      - ./.docker-compose/node-any/.boatswain/peers.txt:/root/.boatswain/peers.txt:ro
 
   node-003:
     <<: *node
-    networks:
-      subnet01:
-        ipv4_address: 10.1.0.103
+    volumes:
+      - ./:/code/
+      - ./.docker-compose/node-003/.boatswain/keys/:/root/.boatswain/keys/:rw
+      - ./.docker-compose/node-any/.boatswain/peers.txt:/root/.boatswain/peers.txt:ro
 
   node-004:
     <<: *node
-    networks:
-      subnet02:
-        ipv4_address: 10.2.0.201
+    volumes:
+      - ./:/code/
+      - ./.docker-compose/node-004/.boatswain/keys/:/root/.boatswain/keys/:rw
+      - ./.docker-compose/node-any/.boatswain/peers.txt:/root/.boatswain/peers.txt:ro
 
   node-005:
     <<: *node
+    volumes:
+      - ./:/code/
+      - ./.docker-compose/node-005/.boatswain/keys/:/root/.boatswain/keys/:rw
+      - ./.docker-compose/node-any/.boatswain/peers.txt:/root/.boatswain/peers.txt:ro
+
+  bootstrap-1: &bootstrap
+    image: docker.io/goforbroke1006/boatswain:latest
+    command: bootstrap
+    volumes:
+      - ./.docker-compose/bootstrap-1/.boatswain/:/root/.boatswain/
     networks:
-      subnet02:
-        ipv4_address: 10.2.0.202
+      subnet01: { ipv4_address: 10.1.0.13 }
+
+  bootstrap-2:
+    <<: *bootstrap
+    volumes:
+      - ./:/code/
+      - ./.docker-compose/bootstrap-2/.boatswain/:/root/.boatswain/
+    networks:
+      subnet01: { ipv4_address: 10.1.0.14 }
 
 networks:
+  default: ~
   subnet01:
     driver: bridge
     ipam:
       config:
-        - subnet: 10.1.0.0/16
-          gateway: 10.1.0.1
-  subnet02:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.2.0.0/16
-          gateway: 10.2.0.1
+        - { subnet: 10.1.0.0/16, gateway: 10.1.0.1 }
+#  subnet02:
+#    driver: bridge
+#    ipam:
+#      config:
+#        - { subnet: 10.2.0.0/16, gateway: 10.2.0.1 }

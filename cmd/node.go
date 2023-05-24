@@ -2,16 +2,20 @@ package cmd
 
 import (
 	"context"
-	"github.com/multiformats/go-multiaddr"
+	"fmt"
+	"log"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/goforbroke1006/boatswain/pkg/discovery/discovery_dht"
-	"github.com/goforbroke1006/go-healthcheck"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+
+	"github.com/goforbroke1006/boatswain/internal/common"
+	"github.com/goforbroke1006/boatswain/pkg/discovery/discovery_dht"
+	"github.com/goforbroke1006/go-healthcheck"
 )
 
 func NewNode() *cobra.Command {
@@ -23,7 +27,7 @@ func NewNode() *cobra.Command {
 
 		// discoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
 		discoveryServiceTag        = "github.com/goforbroke1006/boatswain/node"
-		allInterfacesAnyFreePortMA = "/ip4/0.0.0.0/tcp/0"
+		allInterfacesCertainPortMA = "/ip4/0.0.0.0/tcp/9999"
 	)
 
 	cmd := &cobra.Command{
@@ -34,7 +38,15 @@ func NewNode() *cobra.Command {
 
 			healthcheck.Panel().Start(ctx, healthcheck.DefaultAddr)
 
-			p2pHost, p2pHostErr := libp2p.New(libp2p.ListenAddrStrings(allInterfacesAnyFreePortMA))
+			privateKey, privateKeyErr := common.ReadPrivateKey()
+			if privateKeyErr != nil {
+				zap.L().Fatal("read private key failed", zap.Error(privateKeyErr))
+			}
+
+			p2pHost, p2pHostErr := libp2p.New(
+				libp2p.Identity(privateKey),
+				libp2p.ListenAddrStrings(allInterfacesCertainPortMA),
+			)
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
 			}
@@ -42,6 +54,11 @@ func NewNode() *cobra.Command {
 			zap.L().Info("host peer started",
 				zap.String("peer-id", p2pHost.ID().String()),
 				zap.Any("addresses", p2pHost.Addrs()))
+
+			log.Printf("Connect to me on:")
+			for _, addr := range p2pHost.Addrs() {
+				log.Printf("  %s/p2p/%s", addr, p2pHost.ID().String())
+			}
 
 			// create a new PubSub service using the GossipSub router
 			p2pPubSub, p2pPubSubErr := pubsub.NewGossipSub(ctx, p2pHost)
@@ -57,16 +74,33 @@ func NewNode() *cobra.Command {
 			//}
 			//defer func() { _ = discoverySvc.Close() }()
 
-			peer1, _ := multiaddr.NewMultiaddr("/ip4/10.1.0.101/tcp/0")
-			peer2, _ := multiaddr.NewMultiaddr("/ip4/10.2.0.201/tcp/0")
-			bootstrapPeers := []multiaddr.Multiaddr{peer1, peer2}
+			bootstrapPeers, bootstrapPeersErr := common.LoadPeersList()
+			if bootstrapPeersErr != nil {
+				zap.L().Fatal("load bootstrap peers list fail", zap.Error(bootstrapPeersErr))
+			}
 
 			dht, dhtErr := discovery_dht.NewKDHT(ctx, p2pHost, bootstrapPeers)
 			if dhtErr != nil {
 				zap.L().Fatal("initialize DHT discovery fail", zap.Error(dhtErr))
 			}
+			zap.L().Info("bootstrap peers connecting", zap.Int("count", len(bootstrapPeers)))
 
-			go discovery_dht.Discover(ctx, p2pHost, dht, "github.com/goforbroke1006/boatswain")
+			go discovery_dht.Discover(ctx, p2pHost, dht, DHTRendezvousPhrase)
+
+			go func(ctx context.Context) {
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(10 * time.Second):
+						fmt.Printf("peers list: %d\n", len(p2pHost.Peerstore().Peers()))
+						//for _, peer := range p2pHost.Peerstore().Peers() {
+						//	peerInfo := p2pHost.Peerstore().PeerInfo(peer)
+						//	fmt.Printf("  found peer: %s [%v]\n", peerInfo.ID.String(), peerInfo.Addrs)
+						//}
+					}
+				}
+			}(ctx)
 
 			//db, dbErr := common.OpenDBConn("./blockchain.db")
 			//if dbErr != nil {

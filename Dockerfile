@@ -1,8 +1,5 @@
 FROM golang:1.20-bullseye AS builder
 
-# install compiled lib to reduce build time
-RUN #go install -a github.com/mattn/go-sqlite3@v1.14.16
-
 WORKDIR /code/
 
 ADD go.mod .
@@ -30,3 +27,6 @@ COPY ./db/schema.sql /db/schema.sql
 RUN ls /db/
 
 ENTRYPOINT [ "/application" ]
+
+HEALTHCHECK --start-period=5s --interval=10s --retries=10 --timeout=5s \
+    CMD curl -f http://localhost:8080/readyz || exit 1
