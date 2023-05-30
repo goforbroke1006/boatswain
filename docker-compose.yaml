@@ -31,8 +31,11 @@ services:
         condition: service_healthy
     networks: { subnet01: ~ }
 
+  # http://localhost:8081/ping
   node-002:
     <<: *node
+    ports:
+      - "8081:8081"
     volumes:
       - ./:/code/
       - ./.docker-compose/node-002/.boatswain/keys/:/root/.boatswain/keys/:rw

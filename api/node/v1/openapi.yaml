@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: Node API version 1
+  description: Node API version 1
+  version: 1.0.0
+
+servers:
+  - url: 'http://localhost:8081'
+
+paths:
+  /ping:
+    get:
+      description: check service liveness
+      tags:
+        - system
+      responses:
+        200:
+          description: success
+          content:
+            text/plain:
+              example: pong
+
+  /addresses:
+    get:
+      description: get multi-addresses list
+      tags:
+        - information
+      responses:
+        200:
+          description: return list of multi-addresses that listen current node
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PeerMultiAddress'
+  /addresses/{peer_id}:
+    get:
+      description: get multi-addresses list by peer ID
+      tags:
+        - information
+      parameters:
+        - name: peer_id
+          in: path
+          schema:
+            $ref: '#/components/schemas/PeerHostID'
+      responses:
+        200:
+          description: return list of multi-addresses that listen node with specified peer ID
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PeerMultiAddress'
+
+  /peers:
+    get:
+      description: get peers IDs list
+      tags:
+        - information
+      responses:
+        200:
+          description: return list of discovered and connected peers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PeerHostID'
+
+
+components:
+  schemas:
+    PeerMultiAddress:
+      type: string
+      pattern: '^/ip4/[\w.]+/tcp/\d{4,5}/p2p/[\w]{46}$'
+      example: /ip4/10.1.0.13/tcp/9999/p2p/QmP3jgfGnWqD163w7kzXHbWbJpecFtz5mhqadr8cZBMG93
+    PeerHostID:
+      type: string
+      minLength: 46
+      maxLength: 46
+      example: QmP3jgfGnWqD163w7kzXHbWbJpecFtz5mhqadr8cZBMG93

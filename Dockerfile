@@ -7,6 +7,7 @@ ADD go.sum .
 RUN go mod download -x
 
 COPY . .
+RUN go generate ./...
 ENV CGO_ENABLED=0
 RUN go build -o application -v .
 

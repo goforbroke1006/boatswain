@@ -2,16 +2,16 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"os/signal"
-	"syscall"
-	"time"
-
+	"github.com/goforbroke1006/boatswain/internal/component/node/api/impl"
+	"github.com/goforbroke1006/boatswain/internal/component/node/api/spec"
+	"github.com/labstack/echo/v4"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"log"
+	"os/signal"
+	"syscall"
 
 	"github.com/goforbroke1006/boatswain/internal/common"
 	"github.com/goforbroke1006/boatswain/pkg/discovery/discovery_dht"
@@ -60,6 +60,14 @@ func NewNode() *cobra.Command {
 				log.Printf("  %s/p2p/%s", addr, p2pHost.ID().String())
 			}
 
+			router := echo.New()
+			spec.RegisterHandlers(router, impl.NewHandlers(p2pHost))
+			go func() {
+				if startErr := router.Start("0.0.0.0:8081"); startErr != nil {
+					zap.L().Fatal("start http server failed", zap.Error(startErr))
+				}
+			}()
+
 			// create a new PubSub service using the GossipSub router
 			p2pPubSub, p2pPubSubErr := pubsub.NewGossipSub(ctx, p2pHost)
 			if p2pPubSubErr != nil {
@@ -87,20 +95,20 @@ func NewNode() *cobra.Command {
 
 			go discovery_dht.Discover(ctx, p2pHost, dht, DHTRendezvousPhrase)
 
-			go func(ctx context.Context) {
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case <-time.After(10 * time.Second):
-						fmt.Printf("peers list: %d\n", len(p2pHost.Peerstore().Peers()))
-						//for _, peer := range p2pHost.Peerstore().Peers() {
-						//	peerInfo := p2pHost.Peerstore().PeerInfo(peer)
-						//	fmt.Printf("  found peer: %s [%v]\n", peerInfo.ID.String(), peerInfo.Addrs)
-						//}
-					}
-				}
-			}(ctx)
+			//go func(ctx context.Context) {
+			//	for {
+			//		select {
+			//		case <-ctx.Done():
+			//			return
+			//		case <-time.After(10 * time.Second):
+			//			fmt.Printf("peers list: %d\n", len(p2pHost.Peerstore().Peers()))
+			//			//for _, peer := range p2pHost.Peerstore().Peers() {
+			//			//	peerInfo := p2pHost.Peerstore().PeerInfo(peer)
+			//			//	fmt.Printf("  found peer: %s [%v]\n", peerInfo.ID.String(), peerInfo.Addrs)
+			//			//}
+			//		}
+			//	}
+			//}(ctx)
 
 			//db, dbErr := common.OpenDBConn("./blockchain.db")
 			//if dbErr != nil {
