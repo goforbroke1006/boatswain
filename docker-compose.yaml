@@ -32,6 +32,9 @@ services:
     networks: { subnet01: ~ }
 
   # http://localhost:8081/ping
+  # http://localhost:8081/addresses
+  # http://localhost:8081/peers
+  # http://localhost:8081/addresses/QmTfmxthiEkSmLscYUkSD1SR2tmB78dncXX8BtYo5sVpoK
   node-002:
     <<: *node
     ports:

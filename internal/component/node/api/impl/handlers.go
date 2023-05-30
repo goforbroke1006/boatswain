@@ -39,7 +39,7 @@ func (h handlers) GetAddresses(ctx echo.Context) error {
 }
 
 func (h handlers) GetAddressesPeerId(ctx echo.Context, peerId spec.PeerHostID) error {
-	id := peer.ID(peerId)
+	id, _ := peer.Decode(peerId)
 	peerInfo := h.p2pHost.Peerstore().PeerInfo(id)
 
 	addrs := peerInfo.Addrs

@@ -19,9 +19,18 @@ func ReadPrivateKey() (crypto.PrivKey, error) {
 	}
 
 	var (
+		rootDir        = homeDir + "/.boatswain/"
+		keysDir        = homeDir + "/.boatswain/keys"
 		privateKeyPath = homeDir + "/.boatswain/keys/private_key"
 		publicKeyPath  = homeDir + "/.boatswain/keys/public_key"
 	)
+
+	if mkdirErr := os.MkdirAll(rootDir, os.ModePerm); mkdirErr != nil {
+		return nil, mkdirErr
+	}
+	if mkdirErr := os.MkdirAll(keysDir, os.ModePerm); mkdirErr != nil {
+		return nil, mkdirErr
+	}
 
 	if _, err := os.Stat(privateKeyPath); err == nil {
 		file, err := os.Open(privateKeyPath)
@@ -52,10 +61,13 @@ func ReadPrivateKey() (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	if err := os.WriteFile(privateKeyPath, privKeyBytes, 0777); err != nil {
+	_, _ = os.OpenFile(privateKeyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	_, _ = os.OpenFile(publicKeyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+
+	if err := os.WriteFile(privateKeyPath, privKeyBytes, os.ModePerm); err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(publicKeyPath, pubKeyBytes, 0777); err != nil {
+	if err := os.WriteFile(publicKeyPath, pubKeyBytes, os.ModePerm); err != nil {
 		return nil, err
 	}
 

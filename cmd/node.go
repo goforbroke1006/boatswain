@@ -5,6 +5,7 @@ import (
 	"github.com/goforbroke1006/boatswain/internal/component/node/api/impl"
 	"github.com/goforbroke1006/boatswain/internal/component/node/api/spec"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/spf13/cobra"
@@ -61,6 +62,9 @@ func NewNode() *cobra.Command {
 			}
 
 			router := echo.New()
+			router.Use(middleware.Recover())
+			router.Use(middleware.CORS())
+			router.HideBanner = true
 			spec.RegisterHandlers(router, impl.NewHandlers(p2pHost))
 			go func() {
 				if startErr := router.Start("0.0.0.0:8081"); startErr != nil {
