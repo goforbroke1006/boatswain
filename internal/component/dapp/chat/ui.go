@@ -7,33 +7,16 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/google/uuid"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rivo/tview"
 
 	"github.com/goforbroke1006/boatswain/domain"
+	"github.com/goforbroke1006/boatswain/internal/component/dapp/chat/node_client"
 )
 
 // NewChatUI returns a new ChatUI struct that controls the text UI.
 // It won't actually do anything until you call Init().
-func NewChatUI(
-	p2pHost host.Host,
-	p2pPubSub *pubsub.PubSub,
-	chatTopic string,
-	nickName string,
-	historyMixer *HistoryMixer,
-	msgOut chan<- *domain.Transaction,
-	txOut chan<- *domain.Transaction,
-) *ChatUI {
-	return &ChatUI{
-		p2pHost:      p2pHost,
-		p2pPubSub:    p2pPubSub,
-		nickName:     nickName,
-		chatTopic:    chatTopic,
-		historyMixer: historyMixer,
-		msgOut:       msgOut,
-		txOut:        txOut,
-	}
+func NewChatUI(client node_client.ClientWithResponsesInterface, nickName string) *ChatUI {
+	return &ChatUI{client: client, nickName: nickName}
 }
 
 // ChatUI is a Text User Interface (TUI) for a ChatRoom.
@@ -41,16 +24,8 @@ func NewChatUI(
 // mode. You can quit with Ctrl-C, or by typing "/quit" into the
 // chat prompt.
 type ChatUI struct {
-	p2pHost   host.Host
-	p2pPubSub *pubsub.PubSub
-	chatTopic string
-
+	client   node_client.ClientWithResponsesInterface
 	nickName string
-
-	historyMixer *HistoryMixer
-
-	msgOut chan<- *domain.Transaction
-	txOut  chan<- *domain.Transaction
 }
 
 // Run starts the chat event loop in the background, then starts
@@ -69,16 +44,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case <-time.After(5 * time.Second):
-				history := ui.historyMixer.History()
-				msgBox.Clear()
-				for _, item := range history {
-					color := "red"
-					if item.PeerSender == ui.p2pHost.ID().String() {
-						color = "green"
-					}
-					prompt := withColor(color, fmt.Sprintf("<%s>:", item.PeerSender))
-					_, _ = fmt.Fprintf(msgBox, "%s %s\n", prompt, item.Content)
-				}
+				// TODO: receive messages
 			}
 		}
 	}()
@@ -115,17 +81,17 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 		prompt := withColor("green", fmt.Sprintf("<%s>:", ui.nickName))
 		_, _ = fmt.Fprintf(msgBox, "%s %s\n", prompt, line)
 
-		// send message to room mates
+		// send message to roommates
 		// send message to node
 		tx := &domain.Transaction{
 			ID:            uuid.New(),
-			PeerSender:    ui.p2pHost.ID().String(),
+			PeerSender:    "TODO",
 			PeerRecipient: "",
 			Content:       line,
 			Timestamp:     time.Now().Unix(),
 		}
-		ui.msgOut <- tx
-		ui.txOut <- tx
+
+		_ = tx
 
 		input.SetText("")
 	})
@@ -141,11 +107,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case <-time.After(5 * time.Second):
-				peers := ui.p2pPubSub.ListPeers(ui.chatTopic)
-				peersList.Clear()
-				for _, p := range peers {
-					_, _ = fmt.Fprintln(peersList, p.String())
-				}
+				// TODO: show address book
 
 				app.Draw()
 			}
@@ -174,6 +136,8 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 			errsCh <- appRunErr
 		}
 	}()
+
+	defer app.Stop()
 
 	select {
 	case <-ctx.Done():
