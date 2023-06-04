@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"os"
 	"os/signal"
 	"os/user"
 	"syscall"
@@ -15,8 +16,9 @@ import (
 
 func NewDAppChat() *cobra.Command {
 	var (
-		nodeAPIAddrArg = "http://localhost:8081"
-		userNameArg    = "noname"
+		nodeAPIAddrArg         = "http://localhost:58687"
+		userNameArg            = "noname"
+		dhtRendezvousPhraseArg = "github.com/goforbroke1006/boatswain/chat"
 	)
 
 	currUser, currUserErr := user.Current()
@@ -28,16 +30,21 @@ func NewDAppChat() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "chat",
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(userNameArg) == 0 {
+				zap.L().Error("username is required")
+				os.Exit(1)
+			}
+
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 
-			client, clientErr := node_client.NewClientWithResponses(nodeAPIAddrArg)
-			if clientErr != nil {
-				zap.L().Fatal("http client initialization failed", zap.Error(clientErr))
+			nodeClient, nodeClientErr := node_client.NewClientWithResponses(nodeAPIAddrArg)
+			if nodeClientErr != nil {
+				zap.L().Fatal("http client initialization failed", zap.Error(nodeClientErr))
 			}
 
 			// draw the UI
-			ui := chat.NewChatUI(client, userNameArg)
+			ui := chat.NewChatUI(nodeClient, userNameArg)
 			go func() {
 				if runErr := ui.Run(ctx); runErr != nil {
 					zap.L().Fatal("running text UI fail", zap.Error(runErr))
@@ -51,6 +58,8 @@ func NewDAppChat() *cobra.Command {
 
 	cmd.PersistentFlags().StringVar(&nodeAPIAddrArg, "node-addr", nodeAPIAddrArg, "Node API address")
 	cmd.PersistentFlags().StringVar(&userNameArg, "username", userNameArg, "Chat nick name")
+	cmd.PersistentFlags().StringVar(&dhtRendezvousPhraseArg, "rendezvous", dhtRendezvousPhraseArg,
+		"DHT rendezvous phrase should be same for all peers in network")
 
 	return cmd
 }

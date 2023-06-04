@@ -69,6 +69,23 @@ paths:
                 items:
                   $ref: '#/components/schemas/PeerHostID'
 
+  /transaction:
+    post:
+      description: add next transaction
+      tags:
+        - blockchain
+      requestBody:
+        $ref: ''
+      responses:
+        201:
+          description: return list of discovered and connected peers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PeerHostID'
+
 
 components:
   schemas:
@@ -81,3 +98,9 @@ components:
       minLength: 46
       maxLength: 46
       example: QmP3jgfGnWqD163w7kzXHbWbJpecFtz5mhqadr8cZBMG93
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
