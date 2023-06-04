@@ -49,7 +49,6 @@ func NewKDHT(ctx context.Context, host host.Host, bootstrapPeers []multiaddr.Mul
 	}
 	wg.Wait()
 
-	//return routing.NewRoutingDiscovery(kdht), nil
 	return kdht, nil
 }
 
@@ -65,14 +64,13 @@ func Discover(ctx context.Context, h host.Host, dht *dht.IpfsDHT, rendezvous str
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-
 			peers, err := util.FindPeers(ctx, routingDiscovery, rendezvous)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			for _, p := range peers {
-				if p.ID == h.ID() {
+				if p.ID == h.ID() { // skip self peer
 					continue
 				}
 				if h.Network().Connectedness(p.ID) != network.Connected {

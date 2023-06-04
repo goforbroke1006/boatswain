@@ -16,8 +16,9 @@ import (
 )
 
 func NewBootstrap() *cobra.Command {
-	const (
-		allInterfacesCertainPortMA = "/ip4/0.0.0.0/tcp/9999"
+	var (
+		handleMultiAddrArg     = "/ip4/0.0.0.0/tcp/47000"
+		dhtRendezvousPhraseArg = "github.com/goforbroke1006/boatswain"
 	)
 
 	cmd := &cobra.Command{
@@ -37,14 +38,14 @@ func NewBootstrap() *cobra.Command {
 
 			p2pHost, p2pHostErr := libp2p.New(
 				libp2p.Identity(privateKey),
-				libp2p.ListenAddrStrings(allInterfacesCertainPortMA),
+				libp2p.ListenAddrStrings(handleMultiAddrArg),
 			)
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
 			}
 			defer func() { _ = p2pHost.Close() }()
 			zap.L().Info("host peer started",
-				zap.String("peer-id", p2pHost.ID().String()),
+				zap.String("id", p2pHost.ID().String()),
 				zap.Any("addresses", p2pHost.Addrs()))
 
 			log.Printf("Connect to me on:")
@@ -59,13 +60,18 @@ func NewBootstrap() *cobra.Command {
 
 			healthcheck.Panel().SetHealthy()
 
-			go discovery_dht.Discover(ctx, p2pHost, dht, DHTRendezvousPhrase)
+			go discovery_dht.Discover(ctx, p2pHost, dht, dhtRendezvousPhraseArg)
 
 			healthcheck.Panel().SetReady()
 
 			<-ctx.Done()
 		},
 	}
+
+	cmd.PersistentFlags().StringVar(&handleMultiAddrArg, "addr", handleMultiAddrArg,
+		"Host listen this multi-address")
+	cmd.PersistentFlags().StringVar(&dhtRendezvousPhraseArg, "rendezvous", dhtRendezvousPhraseArg,
+		"DHT rendezvous phrase should be same for all peers in network")
 
 	return cmd
 }

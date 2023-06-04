@@ -65,3 +65,8 @@ func (h handlers) GetPeers(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusOK, respArr)
 }
+
+func (h handlers) PostTransaction(ctx echo.Context) error {
+	//TODO implement me
+	panic("implement me")
+}

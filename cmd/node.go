@@ -2,33 +2,39 @@ package cmd
 
 import (
 	"context"
-	"github.com/goforbroke1006/boatswain/internal/component/node/api/impl"
-	"github.com/goforbroke1006/boatswain/internal/component/node/api/spec"
+	"log"
+	"os/signal"
+	"syscall"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"log"
-	"os/signal"
-	"syscall"
 
 	"github.com/goforbroke1006/boatswain/internal/common"
+	"github.com/goforbroke1006/boatswain/internal/component/node/api/impl"
+	"github.com/goforbroke1006/boatswain/internal/component/node/api/spec"
 	"github.com/goforbroke1006/boatswain/pkg/discovery/discovery_dht"
 	"github.com/goforbroke1006/go-healthcheck"
 )
 
 func NewNode() *cobra.Command {
 	const (
-		//transactionTopic        = "boatswain/_transaction"
-		//consensusVoteTopic      = "boatswain/_vote"
-		//reconciliationReqTopic  = "boatswain/_reconciliation/req"
-		//reconciliationRespTopic = "boatswain/_reconciliation/resp"
+	//transactionTopic        = "boatswain/_transaction"
+	//consensusVoteTopic      = "boatswain/_vote"
+	//reconciliationReqTopic  = "boatswain/_reconciliation/req"
+	//reconciliationRespTopic = "boatswain/_reconciliation/resp"
 
-		// discoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
-		discoveryServiceTag        = "github.com/goforbroke1006/boatswain/node"
-		allInterfacesCertainPortMA = "/ip4/0.0.0.0/tcp/9999"
+	// discoveryServiceTag is used in our mDNS advertisements to discover other chat peers.
+	//discoveryServiceTag        = "github.com/goforbroke1006/boatswain/node"
+	//allInterfacesCertainPortMA = "/ip4/0.0.0.0/tcp/9999"
+	)
+
+	var (
+		handleMultiAddrArg     = "/ip4/0.0.0.0/tcp/0"
+		dhtRendezvousPhraseArg = "github.com/goforbroke1006/boatswain"
 	)
 
 	cmd := &cobra.Command{
@@ -46,14 +52,14 @@ func NewNode() *cobra.Command {
 
 			p2pHost, p2pHostErr := libp2p.New(
 				libp2p.Identity(privateKey),
-				libp2p.ListenAddrStrings(allInterfacesCertainPortMA),
+				libp2p.ListenAddrStrings(handleMultiAddrArg),
 			)
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
 			}
 			defer func() { _ = p2pHost.Close() }()
 			zap.L().Info("host peer started",
-				zap.String("peer-id", p2pHost.ID().String()),
+				zap.String("id", p2pHost.ID().String()),
 				zap.Any("addresses", p2pHost.Addrs()))
 
 			log.Printf("Connect to me on:")
@@ -67,24 +73,10 @@ func NewNode() *cobra.Command {
 			router.HideBanner = true
 			spec.RegisterHandlers(router, impl.NewHandlers(p2pHost))
 			go func() {
-				if startErr := router.Start("0.0.0.0:8081"); startErr != nil {
+				if startErr := router.Start("0.0.0.0:58687"); startErr != nil {
 					zap.L().Fatal("start http server failed", zap.Error(startErr))
 				}
 			}()
-
-			// create a new PubSub service using the GossipSub router
-			p2pPubSub, p2pPubSubErr := pubsub.NewGossipSub(ctx, p2pHost)
-			if p2pPubSubErr != nil {
-				zap.L().Fatal("initialize gossip sub fail", zap.Error(p2pPubSubErr))
-			}
-			_ = p2pPubSub
-
-			//// setup local mDNS discoverySvc
-			//discoverySvc := mdns.NewDiscovery(p2pHost, discoveryServiceTag)
-			//if discoveryErr := discoverySvc.Start(); discoveryErr != nil {
-			//	zap.L().Fatal("initialize gossip sub fail", zap.Error(discoveryErr))
-			//}
-			//defer func() { _ = discoverySvc.Close() }()
 
 			bootstrapPeers, bootstrapPeersErr := common.LoadPeersList()
 			if bootstrapPeersErr != nil {
@@ -97,7 +89,15 @@ func NewNode() *cobra.Command {
 			}
 			zap.L().Info("bootstrap peers connecting", zap.Int("count", len(bootstrapPeers)))
 
-			go discovery_dht.Discover(ctx, p2pHost, dht, DHTRendezvousPhrase)
+			go discovery_dht.Discover(ctx, p2pHost, dht, dhtRendezvousPhraseArg)
+
+			// create a new PubSub service using the GossipSub router
+			p2pPubSub, p2pPubSubErr := pubsub.NewGossipSub(ctx, p2pHost)
+			if p2pPubSubErr != nil {
+				zap.L().Fatal("initialize gossip sub fail", zap.Error(p2pPubSubErr))
+			}
+			zap.L().Info("pub-sub initialized")
+			_ = p2pPubSub
 
 			//go func(ctx context.Context) {
 			//	for {
@@ -245,6 +245,11 @@ func NewNode() *cobra.Command {
 			<-ctx.Done()
 		},
 	}
+
+	cmd.PersistentFlags().StringVar(&handleMultiAddrArg, "addr", handleMultiAddrArg,
+		"Host listen this multi-address")
+	cmd.PersistentFlags().StringVar(&dhtRendezvousPhraseArg, "rendezvous", dhtRendezvousPhraseArg,
+		"DHT rendezvous phrase should be same for all peers in network")
 
 	return cmd
 }

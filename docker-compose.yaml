@@ -1,3 +1,14 @@
+# Local test network for chat demo.
+# DHT with rendezvous phrase "github.com/goforbroke1006/boatswain/chat"
+# Two bootstrap instances (inside containers port 47000), 5 nodes (random port).
+# Node #2 has open ports 8081 for REST API.
+#
+# Diagrams in docs/chat/README.md file
+#
+# Run sample with
+#   go run . -- dapp chat --username=JohnSmith
+#
+
 version: "3.9"
 
 services:
@@ -13,7 +24,7 @@ services:
 
   node-001: &node
     image: github.com/goforbroke1006/boatswain:dev
-    command: node
+    command: node --rendezvous="github.com/goforbroke1006/boatswain/chat"
     volumes:
       - ./:/code/
       - ./.docker-compose/node-001/.boatswain/keys/:/root/.boatswain/keys/:rw
@@ -38,7 +49,7 @@ services:
   node-002:
     <<: *node
     ports:
-      - "8081:8081"
+      - "58687:58687"
     volumes:
       - ./:/code/
       - ./.docker-compose/node-002/.boatswain/keys/:/root/.boatswain/keys/:rw
@@ -67,7 +78,7 @@ services:
 
   bootstrap-1: &bootstrap
     image: docker.io/goforbroke1006/boatswain:latest
-    command: bootstrap
+    command: bootstrap --addr="/ip4/0.0.0.0/tcp/47000" --rendezvous="github.com/goforbroke1006/boatswain/chat"
     volumes:
       - ./.docker-compose/bootstrap-1/.boatswain/:/root/.boatswain/
     networks:
