@@ -19,9 +19,7 @@ RUN go mod download -x
 
 # Copy all files and compile to binary file.
 COPY . .
-RUN go generate ./...
-ENV CGO_ENABLED=0
-RUN go build -o application -v .
+RUN make prepare build
 
 
 
@@ -32,14 +30,15 @@ RUN apt install curl -y
 
 WORKDIR /
 
-COPY --from=builder /code/application /application
-RUN chmod +x /application
+COPY --from=builder /code/boatswain /usr/local/bin/boatswain
+RUN chmod +x /usr/local/bin/boatswain
 
 RUN mkdir /db/
 COPY ./db/schema.sql /db/schema.sql
 RUN ls /db/
 
-ENTRYPOINT [ "/application" ]
+ENTRYPOINT [ "boatswain" ]
+CMD [ "help" ]
 
 HEALTHCHECK --start-period=5s --interval=10s --retries=10 --timeout=5s \
     CMD curl -f http://localhost:8080/readyz || exit 1

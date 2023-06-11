@@ -1,9 +1,16 @@
+# IDEs
 /.idea/
+/.vscode/
+
+# generated files
+/**/*.gen.go
+/**/*.mock.go
+
+# artifacts
 /.build/
 !/.build/**/.gitkeep
 /boatswain
 /boatswain.exe
-
+/coverage.out
+/coverage.out.tmp
 /*.db
-/**/*.gen.go
-/**/*.mock.go

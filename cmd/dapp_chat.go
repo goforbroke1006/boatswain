@@ -28,7 +28,8 @@ func NewDAppChat() *cobra.Command {
 	userNameArg = currUser.Username
 
 	cmd := &cobra.Command{
-		Use: "chat",
+		Use:   "chat",
+		Short: "Chat sample",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(userNameArg) == 0 {
 				zap.L().Error("username is required")

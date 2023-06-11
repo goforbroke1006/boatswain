@@ -8,14 +8,14 @@ all: prepare build test lint ## Recommended step to prepare project
 .PHONY: all
 
 prepare: ## Install dependencies, generate boilerplate code and update go.mod go.sum files
-	go mod tidy
-	go mod download -x
-	go generate ./...
-	go mod tidy
+	@go mod tidy
+	@go mod download -x
+	@go generate ./...
+	@go mod tidy
 .PHONY: prepare
 
 build: ## Compile source code to binary file
-	go build -o "$(SERVICE_NAME)" .
+	@go build -o "$(SERVICE_NAME)" .
 .PHONY: build
 
 test: ## Run tests with code coverage print
@@ -31,32 +31,33 @@ lint: ## Check source code with linter
 .PHONY: lint
 
 coverage: ## Run code coverage visual tool to inspect uncovered parts of project
-	go test -short -race -coverprofile coverage.out.tmp ./...
-	cat coverage.out.tmp | grep -v ".gen.go" > coverage.out
-	go tool cover -html ./coverage.out
+	@go test -short -race -coverprofile coverage.out.tmp ./...
+	@cat coverage.out.tmp | grep -v ".gen.go" > coverage.out
+	@go tool cover -html ./coverage.out
 .PHONY: coverage
 
 benchmark: ## Run benchmark tests and compare with previous results
-	go install golang.org/x/perf/cmd/benchstat@latest
+	@go install golang.org/x/perf/cmd/benchstat@latest
 	# -run=^#        - skips unit tests
 	# -benchtime=10x - adjusts minimum time for each test
 	# -benchmem      - print memory usage
 	# -cpu=1,2,4     - verify on similar to production settings
-	go test -gcflags=-N -bench=. -run=^# -benchtime=10x -benchmem -cpu=1,2,4 ./... | tee .benchmark/new.txt
-	benchstat .benchmark/old.txt .benchmark/new.txt
+	@go test -gcflags=-N -bench=. -run=^# -benchtime=10x -benchmem -cpu=1,2,4 ./... | tee .benchmark/new.txt
+	@benchstat .benchmark/old.txt .benchmark/new.txt
 .PHONY: benchmark
 
 image: ## Build image snapshot (latest tag)
-	docker build --pull -f ./Dockerfile -t $(IMAGE_NAME):$(IMAGE_TAG) .
-	docker push $(IMAGE_NAME):$(IMAGE_TAG)
+	@docker build --pull -f ./Dockerfile -t $(IMAGE_NAME):$(IMAGE_TAG) .
+	@docker push $(IMAGE_NAME):$(IMAGE_TAG)
+	@docker run --rm -it $(IMAGE_NAME):$(IMAGE_TAG) help
 
 dev: ## Build local environment docker images
-	bash .docker-compose/build-all.sh
+	@bash .docker-compose/build-all.sh
 .PHONY: dev
 
 start: ## Run local environment
-	docker compose down --volumes
-	docker compose up -d minimal
+	@docker compose down --volumes
+	@docker compose up -d minimal
 .PHONY: start
 
 

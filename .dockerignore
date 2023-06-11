@@ -6,9 +6,11 @@
 /test
 /boatswain
 /boatswain.exe
+/coverage.out
+/coverage.out.tmp
 /docker-compose.yaml
+/LICENSE
 /README.md
-/setup.sh
 
 /**/*.gen.go
 /**/*.mock.go

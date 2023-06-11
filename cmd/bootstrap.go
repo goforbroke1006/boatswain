@@ -23,8 +23,8 @@ func NewBootstrap() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "bootstrap",
-		Short: "Bootstrap service",
-		Long:  "Bootstrap service required to help nodes discover each other",
+		Short: "Bootstrap component",
+		Long:  "Bootstrap component helps nodes discover each other",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()

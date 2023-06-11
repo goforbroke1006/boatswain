@@ -33,12 +33,14 @@ func NewNode() *cobra.Command {
 	)
 
 	var (
-		handleMultiAddrArg     = "/ip4/0.0.0.0/tcp/0"
+		handleMultiAddrArg     = "/ip4/0.0.0.0/tcp/58687"
 		dhtRendezvousPhraseArg = "github.com/goforbroke1006/boatswain"
 	)
 
 	cmd := &cobra.Command{
-		Use: "node",
+		Use:   "node",
+		Short: "Node component",
+		Long:  "Node appends transactions and sync blocks",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
