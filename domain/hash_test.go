@@ -9,7 +9,7 @@ func Test_GetSHA256(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want BlockHash
+		want string
 	}{
 		{
 			name: "positive 1",
@@ -19,7 +19,7 @@ func Test_GetSHA256(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetSHA256(tt.args.phrase); got != tt.want {
+			if got := GetSHA256([]byte(tt.args.phrase)); got != tt.want {
 				t.Errorf("GetSHA256() = %v, want %v", got, tt.want)
 			}
 		})

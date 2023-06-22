@@ -3,54 +3,46 @@ package domain
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 )
 
-func NewBlock(id BlockIndex, prevHash BlockHash, ts time.Time, data []*Transaction) *Block {
-	if data == nil {
-		data = make([]*Transaction, 0)
+func GenerateHash(b *Block) *Block {
+	hashContent := fmt.Sprintf("%d-%s-%d", b.ID, b.PrevHash, b.Ts)
+
+	for _, tx := range b.Data {
+		hashContent += fmt.Sprintf("--%s-%d-%s",
+			tx.ID.String(), tx.Timestamp, GetSHA256(tx.Content))
 	}
 
-	b := &Block{
-		ID:       id,
-		Hash:     "",
-		PrevHash: prevHash,
-		Ts:       ts.Unix(),
-		Data:     data,
-	}
-	b.GenerateHash()
+	b.Hash = BlockHash(GetSHA256([]byte(hashContent)))
+
 	return b
 }
 
-type Block struct {
-	ID       BlockIndex     `json:"id"`
-	Hash     BlockHash      `json:"hash"`
-	PrevHash BlockHash      `json:"prev_hash"`
-	Ts       int64          `json:"ts"`
-	Data     []*Transaction `json:"data"`
+func Genesis() *Block {
+	const (
+		genesisTs        = 644996700
+		genesisTxContent = "GENESIS"
+	)
 
-	metaSenderPeerID string
-}
-
-func (b *Block) GenerateHash() {
-	hashContent := fmt.Sprintf("%d-%s-%d", b.ID, b.PrevHash, b.Ts)
-
-	for _, txp := range b.Data {
-		hashContent += fmt.Sprintf("--%s-%s-%d-%s",
-			txp.ID.String(), txp.PeerSender, txp.Timestamp, GetSHA256(txp.Content))
+	block := &Block{
+		ID:       1,
+		Hash:     "",
+		PrevHash: "",
+		Ts:       genesisTs,
+		Data: []Transaction{
+			{
+				ID:        uuid.Nil,
+				Content:   []byte(genesisTxContent),
+				Timestamp: genesisTs,
+			},
+		},
 	}
 
-	b.Hash = GetSHA256(hashContent)
-}
+	block = GenerateHash(block)
 
-func (b *Block) SetSender(peerID string) {
-	b.metaSenderPeerID = peerID
-}
-
-func (b *Block) GetSender() string {
-	return b.metaSenderPeerID
+	return block
 }
 
 type BlockStorage interface {
@@ -60,13 +52,3 @@ type BlockStorage interface {
 	LoadLast(count uint64) ([]*Block, error)
 	LoadAfterBlock(ctx context.Context, id BlockIndex, count uint64) ([]*Block, error)
 }
-
-var Genesis = NewBlock(1, "", time.Unix(644996700, 0), []*Transaction{
-	{
-		ID:            uuid.Nil,
-		PeerSender:    "",
-		PeerRecipient: "",
-		Content:       "GENESIS",
-		Timestamp:     644996700,
-	},
-})

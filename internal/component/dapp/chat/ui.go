@@ -84,11 +84,9 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 		// send message to roommates
 		// send message to node
 		tx := &domain.Transaction{
-			ID:            uuid.New(),
-			PeerSender:    "TODO",
-			PeerRecipient: "",
-			Content:       line,
-			Timestamp:     time.Now().Unix(),
+			ID:        uuid.New(),
+			Content:   []byte(line),
+			Timestamp: time.Now().Unix(),
 		}
 
 		_ = tx

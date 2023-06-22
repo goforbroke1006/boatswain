@@ -42,7 +42,7 @@ func (s *Syncer) Run(ctx context.Context) error {
 	}
 
 	if count == 0 {
-		storeErr := s.storage.Store(ctx, domain.Genesis)
+		storeErr := s.storage.Store(ctx, domain.Genesis())
 		if storeErr != nil {
 			return storeErr
 		}

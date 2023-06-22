@@ -141,7 +141,7 @@ func (s blockStorage) LoadAfterBlock(ctx context.Context, id domain.BlockIndex, 
 		phash      string
 		ts         int64
 		dataAsJson string
-		data       []*domain.Transaction
+		data       []domain.Transaction
 	)
 
 	var result []*domain.Block

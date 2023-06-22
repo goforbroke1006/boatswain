@@ -31,7 +31,7 @@ func TestNodeReconciliation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	currentState := []*domain.Block{domain.Genesis}
+	currentState := []*domain.Block{domain.Genesis()}
 	currentState = append(currentState, domain.NewBlock(2, currentState[len(currentState)-1].Hash, time.Now(), nil))
 	currentState = append(currentState, domain.NewBlock(3, currentState[len(currentState)-1].Hash, time.Now(), nil))
 	currentState = append(currentState, domain.NewBlock(4, currentState[len(currentState)-1].Hash, time.Now(), nil))

@@ -8,17 +8,30 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 
+	"github.com/goforbroke1006/boatswain/domain"
 	"github.com/goforbroke1006/boatswain/internal/component/node/api/spec"
 )
 
-func NewHandlers(p2pHost host.Host) spec.ServerInterface {
-	return &handlers{p2pHost: p2pHost}
+func NewHandlers(
+	p2pHost host.Host,
+	txCache domain.TransactionCache,
+	txSpreadSvc domain.TransactionSpreadInfoService,
+) spec.ServerInterface {
+	return &handlers{
+		p2pHost: p2pHost,
+
+		txCache:     txCache,
+		txSpreadSvc: txSpreadSvc,
+	}
 }
 
 var _ spec.ServerInterface = (*handlers)(nil)
 
 type handlers struct {
 	p2pHost host.Host
+
+	txCache     domain.TransactionCache
+	txSpreadSvc domain.TransactionSpreadInfoService
 }
 
 func (h handlers) GetPing(ctx echo.Context) error {
@@ -67,6 +80,13 @@ func (h handlers) GetPeers(ctx echo.Context) error {
 }
 
 func (h handlers) PostTransaction(ctx echo.Context) error {
-	//TODO implement me
-	panic("implement me")
+	var tx domain.Transaction // TODO: parse data
+
+	h.txCache.Append(tx)
+
+	if spreadErr := h.txSpreadSvc.Spread(tx); spreadErr != nil {
+		return spreadErr
+	}
+
+	return ctx.JSON(http.StatusCreated, nil)
 }
