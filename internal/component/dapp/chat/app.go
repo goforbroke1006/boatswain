@@ -2,52 +2,51 @@ package chat
 
 import (
 	"context"
+	"crypto"
 	"fmt"
+	"go.uber.org/zap"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/google/uuid"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/rivo/tview"
 
-	"github.com/goforbroke1006/boatswain/domain"
 	"github.com/goforbroke1006/boatswain/internal/component/dapp/chat/node_client"
 )
 
-// NewChatUI returns a new ChatUI struct that controls the text UI.
+// NewApplication returns a new Application struct that controls the text UI.
 // It won't actually do anything until you call Init().
-func NewChatUI(client node_client.ClientWithResponsesInterface, nickName string) *ChatUI {
-	return &ChatUI{client: client, nickName: nickName}
+func NewApplication(
+	nickName string,
+	privateKey crypto.PrivateKey,
+	publicKey crypto.PublicKey,
+	p2pPubSub *pubsub.PubSub,
+) *Application {
+	return &Application{nickName: nickName}
 }
 
-// ChatUI is a Text User Interface (TUI) for a ChatRoom.
+// Application is a Text User Interface (TUI) for a ChatRoom.
 // The Run method will draw the UI to the terminal in "fullscreen"
 // mode. You can quit with Ctrl-C, or by typing "/quit" into the
 // chat prompt.
-type ChatUI struct {
+type Application struct {
 	client   node_client.ClientWithResponsesInterface
 	nickName string
 }
 
 // Run starts the chat event loop in the background, then starts
 // the event loop for the text UI.
-func (ui *ChatUI) Run(ctx context.Context) error {
+func (ui *Application) Run(ctx context.Context) error {
+	zap.L().Debug("starting UI")
+
 	app := tview.NewApplication()
+	defer app.Stop()
 
 	// make a text view to contain our chat messages
 	msgBox := tview.NewTextView()
 	msgBox.SetDynamicColors(true)
 	msgBox.SetBorder(true)
 	msgBox.SetTitle("Chat Room")
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(5 * time.Second):
-				// TODO: receive messages
-			}
-		}
-	}()
 
 	// text views are io.Writers, but they don't automatically refresh.
 	// this sets a change handler to force the app to redraw when we get
@@ -81,15 +80,7 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 		prompt := withColor("green", fmt.Sprintf("<%s>:", ui.nickName))
 		_, _ = fmt.Fprintf(msgBox, "%s %s\n", prompt, line)
 
-		// send message to roommates
-		// send message to node
-		tx := &domain.Transaction{
-			ID:        uuid.New(),
-			Content:   []byte(line),
-			Timestamp: time.Now().Unix(),
-		}
-
-		_ = tx
+		// TODO: send message to roommates
 
 		input.SetText("")
 	})
@@ -129,16 +120,17 @@ func (ui *ChatUI) Run(ctx context.Context) error {
 
 	errsCh := make(chan error, 2)
 
+	zap.L().Debug("running UI")
 	go func() {
 		if appRunErr := app.Run(); appRunErr != nil {
 			errsCh <- appRunErr
 		}
 	}()
 
-	defer app.Stop()
-
+	zap.L().Debug("waiting for exit UI")
 	select {
 	case <-ctx.Done():
+		zap.L().Debug("stopping UI")
 		return ctx.Err()
 	case err := <-errsCh:
 		return err

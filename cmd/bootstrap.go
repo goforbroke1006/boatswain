@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os/signal"
 	"syscall"
 
@@ -31,15 +31,15 @@ func NewBootstrap() *cobra.Command {
 
 			healthcheck.Panel().Start(ctx, healthcheck.DefaultAddr)
 
-			privateKey, privateKeyErr := common.ReadPrivateKey()
-			if privateKeyErr != nil {
-				zap.L().Fatal("read private key failed", zap.Error(privateKeyErr))
+			// load key pair or create
+			privateKey, _, keysPairErr := common.GetKeysPair()
+			if keysPairErr != nil {
+				zap.L().Fatal("get keys pair failed", zap.Error(keysPairErr))
 			}
 
 			p2pHost, p2pHostErr := libp2p.New(
 				libp2p.Identity(privateKey),
-				libp2p.ListenAddrStrings(handleMultiAddrArg),
-			)
+				libp2p.ListenAddrStrings(handleMultiAddrArg))
 			if p2pHostErr != nil {
 				zap.L().Fatal("p2p host listening fail", zap.Error(p2pHostErr))
 			}
@@ -48,9 +48,9 @@ func NewBootstrap() *cobra.Command {
 				zap.String("id", p2pHost.ID().String()),
 				zap.Any("addresses", p2pHost.Addrs()))
 
-			log.Printf("Connect to me on:")
+			zap.L().Info("Connect to me on:")
 			for _, addr := range p2pHost.Addrs() {
-				log.Printf("  %s/p2p/%s", addr, p2pHost.ID().String())
+				zap.L().Info(fmt.Sprintf("  %s/p2p/%s", addr, p2pHost.ID().String()))
 			}
 
 			dht, dhtErr := discovery_dht.NewKDHT(ctx, p2pHost, nil)

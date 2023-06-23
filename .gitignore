@@ -3,14 +3,13 @@
 /.vscode/
 
 # generated files
-/**/*.gen.go
-/**/*.mock.go
+*.gen.go
+*.mock.go
+*.out
 
 # artifacts
 /.build/
 !/.build/**/.gitkeep
 /boatswain
 /boatswain.exe
-/coverage.out
-/coverage.out.tmp
 /*.db

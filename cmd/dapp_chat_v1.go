@@ -2,45 +2,37 @@ package cmd
 
 import (
 	"context"
+	"github.com/goforbroke1006/boatswain/internal/component/dapp/chat"
 	"os/signal"
 	"syscall"
 
-	"github.com/goforbroke1006/go-healthcheck"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/goforbroke1006/boatswain/domain"
-	"github.com/goforbroke1006/boatswain/internal"
 	"github.com/goforbroke1006/boatswain/internal/common"
-	"github.com/goforbroke1006/boatswain/internal/component/node"
-	"github.com/goforbroke1006/boatswain/internal/component/node/api/impl"
-	"github.com/goforbroke1006/boatswain/internal/component/node/api/spec"
+	"github.com/goforbroke1006/boatswain/internal/system"
 	"github.com/goforbroke1006/boatswain/pkg/discovery/discovery_dht"
 )
 
-func NewNode() *cobra.Command {
+func NewDAppChat() *cobra.Command {
 	var (
-		handleMultiAddrArg     = "/ip4/0.0.0.0/tcp/58687"
-		dhtRendezvousPhraseArg = "github.com/goforbroke1006/boatswain"
+		handleMultiAddrArg     = "/ip4/0.0.0.0/tcp/58688"
+		userNameArg            = system.MustGetCurrentUsername()
+		dhtRendezvousPhraseArg = "github.com/goforbroke1006/boatswain/dapp/chat"
 	)
 
 	cmd := &cobra.Command{
-		Use:   "node",
-		Short: "Node component",
-		Long:  "Node appends transactions and sync blocks",
+		Use:     "chat",
+		Version: "v1.0",
+		Short:   "Chat sample",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 
-			healthcheck.Panel().Start(ctx, healthcheck.DefaultAddr)
-			healthcheck.Panel().SetHealthy()
-
 			// load key pair or create
-			privateKey, _, keysPairErr := common.GetKeysPair()
+			privateKey, publicKey, keysPairErr := common.GetKeysPair()
 			if keysPairErr != nil {
 				zap.L().Fatal("get keys pair failed", zap.Error(keysPairErr))
 			}
@@ -76,45 +68,20 @@ func NewNode() *cobra.Command {
 			}
 			zap.L().Info("pub-sub initialized")
 
-			var (
-				txCache         = internal.NewTransactionCache()
-				txSpreadSvc     = internal.NewTransactionSpreadInfoService(p2pPubSub)
-				txReader        domain.TransactionReader
-				blockSpreadSvc  domain.BlockVoteSpreadInfoService
-				blockStorage    domain.BlockStorage
-				blockVoteReader domain.BlockVoteReader
-				voteCollector   domain.VoteCollector
-			)
+			_ = privateKey
+			_ = publicKey
+			_ = p2pPubSub
 
-			const requiredForBlockCount = 12 // TODO: move to config
-
-			app := node.NewApplication(
-				p2pHost,
-				txCache,
-				txReader,
-				blockStorage,
-				blockSpreadSvc,
-				requiredForBlockCount,
-				blockVoteReader,
-				voteCollector)
+			// draw the UI
+			app := chat.NewApplication(userNameArg, privateKey, publicKey, p2pPubSub)
+			_ = app
 			go func() {
-				if runErr := app.Run(ctx); runErr != nil && runErr != context.Canceled {
-					zap.L().Fatal("run application failed", zap.Error(runErr))
+				if runErr := app.Run(ctx); runErr != nil {
+					zap.L().Fatal("app running fail", zap.Error(runErr))
 				}
+				zap.L().Debug("exit UI")
+				//stop()
 			}()
-
-			router := echo.New()
-			router.HideBanner = true
-			router.Use(middleware.Recover())
-			router.Use(middleware.CORS())
-			spec.RegisterHandlers(router, impl.NewHandlers(p2pHost, txCache, txSpreadSvc))
-			go func() {
-				if startErr := router.Start("0.0.0.0:58687"); startErr != nil {
-					zap.L().Fatal("start http server failed", zap.Error(startErr))
-				}
-			}()
-
-			healthcheck.Panel().SetReady()
 
 			<-ctx.Done()
 		},
@@ -122,6 +89,7 @@ func NewNode() *cobra.Command {
 
 	cmd.PersistentFlags().StringVar(&handleMultiAddrArg, "addr", handleMultiAddrArg,
 		"Host listen this multi-address")
+	cmd.PersistentFlags().StringVar(&userNameArg, "username", userNameArg, "Chat nick name")
 	cmd.PersistentFlags().StringVar(&dhtRendezvousPhraseArg, "rendezvous", dhtRendezvousPhraseArg,
 		"DHT rendezvous phrase should be same for all peers in network")
 
@@ -129,5 +97,5 @@ func NewNode() *cobra.Command {
 }
 
 func init() {
-	rootCmd.AddCommand(NewNode())
+	dappCmd.AddCommand(NewDAppChat())
 }

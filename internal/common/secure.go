@@ -12,10 +12,10 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-func ReadPrivateKey() (crypto.PrivKey, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
+func GetKeysPair() (crypto.PrivKey, crypto.PubKey, error) {
+	homeDir, homeDirErr := os.UserHomeDir()
+	if homeDirErr != nil {
+		return nil, nil, homeDirErr
 	}
 
 	var (
@@ -26,52 +26,80 @@ func ReadPrivateKey() (crypto.PrivKey, error) {
 	)
 
 	if mkdirErr := os.MkdirAll(rootDir, os.ModePerm); mkdirErr != nil {
-		return nil, mkdirErr
+		return nil, nil, mkdirErr
 	}
 	if mkdirErr := os.MkdirAll(keysDir, os.ModePerm); mkdirErr != nil {
-		return nil, mkdirErr
+		return nil, nil, mkdirErr
 	}
+
+	var (
+		privateKey crypto.PrivKey = nil
+		publicKey  crypto.PubKey  = nil
+	)
 
 	if _, err := os.Stat(privateKeyPath); err == nil {
 		file, err := os.Open(privateKeyPath)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		keyContent, err := io.ReadAll(file)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		privateKey, err := crypto.UnmarshalRsaPrivateKey(keyContent)
-
-		return privateKey, err
+		privKey, privKeyErr := crypto.UnmarshalRsaPrivateKey(keyContent)
+		if privKeyErr != nil {
+			return nil, nil, privKeyErr
+		}
+		privateKey = privKey
 	}
 
-	privKey, pubKey, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
-	if err != nil {
-		return nil, err
-	}
-	privKeyBytes, err := privKey.Raw()
-	if err != nil {
-		return nil, err
-	}
-	pubKeyBytes, err := pubKey.Raw()
-	if err != nil {
-		return nil, err
+	if _, err := os.Stat(publicKeyPath); err == nil {
+		file, err := os.Open(publicKeyPath)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		keyContent, err := io.ReadAll(file)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		pubKey, pubKeyErr := crypto.UnmarshalRsaPublicKey(keyContent)
+		if pubKeyErr != nil {
+			return nil, nil, pubKeyErr
+		}
+		publicKey = pubKey
 	}
 
-	_, _ = os.OpenFile(privateKeyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	_, _ = os.OpenFile(publicKeyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if privateKey == nil || publicKey == nil {
+		var generateErr error
+		privateKey, publicKey, generateErr = crypto.GenerateKeyPair(crypto.RSA, 2048)
+		if generateErr != nil {
+			return nil, nil, generateErr
+		}
+		privKeyBytes, err := privateKey.Raw()
+		if err != nil {
+			return nil, nil, err
+		}
+		pubKeyBytes, err := publicKey.Raw()
+		if err != nil {
+			return nil, nil, err
+		}
 
-	if err := os.WriteFile(privateKeyPath, privKeyBytes, os.ModePerm); err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(publicKeyPath, pubKeyBytes, os.ModePerm); err != nil {
-		return nil, err
+		_, _ = os.OpenFile(privateKeyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+		_, _ = os.OpenFile(publicKeyPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+
+		if err := os.WriteFile(privateKeyPath, privKeyBytes, os.ModePerm); err != nil {
+			return nil, nil, err
+		}
+		if err := os.WriteFile(publicKeyPath, pubKeyBytes, os.ModePerm); err != nil {
+			return nil, nil, err
+		}
 	}
 
-	return privKey, nil
+	return privateKey, publicKey, nil
 }
 
 func LoadPeersList() ([]multiaddr.Multiaddr, error) {
