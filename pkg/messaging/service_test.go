@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"context"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"testing"
 	"time"
 
@@ -15,14 +16,19 @@ func Test_basic(t *testing.T) {
 	t.Run("two participants", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
-		host1, _ := libp2p.New()
-		host2, _ := libp2p.New()
+		privateKey1, _, _ := crypto.GenerateKeyPair(crypto.RSA, 2048)
+		host1, _ := libp2p.New(libp2p.Identity(privateKey1))
 
-		var received1 []string = make([]string, 0, 100)
-		var received2 []string = make([]string, 0, 100)
+		privateKey2, _, _ := crypto.GenerateKeyPair(crypto.RSA, 2048)
+		host2, _ := libp2p.New(libp2p.Identity(privateKey2))
 
-		go communicator(ctx, host1, host2, received1, "Hello", "How are u?")
-		go communicator(ctx, host2, host1, received2, "What's up", "I'm fine!")
+		var (
+			received1 = make([]string, 2)
+			received2 = make([]string, 2)
+		)
+
+		go communicator(ctx, host1, privateKey1, host2, received1, "Hello", "How are u?")
+		go communicator(ctx, host2, privateKey2, host1, received2, "What's up", "I'm fine!")
 
 		<-time.After(5 * time.Second)
 		cancel()
@@ -35,25 +41,34 @@ func Test_basic(t *testing.T) {
 	})
 }
 
-func communicator(ctx context.Context, selfHost, anotherHost host.Host, received []string, msgs ...string) {
+func communicator(ctx context.Context, selfHost host.Host, privKey crypto.PrivKey, anotherHost host.Host, received []string, msgs ...string) {
 	pubSub, _ := pubsub.NewGossipSub(ctx, selfHost)
 
-	svc := New(pubSub)
+	topic, joinErr := pubSub.Join("Test_basic")
+	if joinErr != nil {
+		panic(joinErr)
+	}
 
-	nextOutIdx := 0
+	subscribe, subscrErr := topic.Subscribe()
+	if subscrErr != nil {
+		panic(subscrErr)
+	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case income := <-svc.Recv():
-			_ = income
-		case <-time.After(time.Second):
-			if nextOutIdx < len(msgs) {
-				msg := msgs[nextOutIdx]
-				_ = svc.Send(selfHost.ID(), anotherHost.ID(), []byte(msg))
-				nextOutIdx++
+	svc := New(ctx, selfHost, privKey, topic, subscribe)
+	defer func() { _ = svc.Close() }()
+
+	for _, msg := range msgs {
+		_ = svc.Send(anotherHost.ID(), []byte(msg))
+	}
+
+	for receiveIdx := 0; receiveIdx < len(received); receiveIdx++ {
+		if income, incomeErr := svc.GetNext(ctx); incomeErr != nil {
+			if incomeErr == context.Canceled {
+				break
 			}
+			received[receiveIdx] = incomeErr.Error()
+		} else {
+			received[receiveIdx] = string(income.Content)
 		}
 	}
 }
