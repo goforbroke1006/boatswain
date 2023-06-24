@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/goforbroke1006/boatswain/internal/component/dapp/chat"
 	"os/signal"
 	"syscall"
 
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/spf13/cobra"
@@ -20,7 +22,7 @@ func NewDAppChat() *cobra.Command {
 	var (
 		handleMultiAddrArg     = "/ip4/0.0.0.0/tcp/58688"
 		userNameArg            = system.MustGetCurrentUsername()
-		dhtRendezvousPhraseArg = "github.com/goforbroke1006/boatswain/dapp/chat"
+		dhtRendezvousPhraseArg = "github.com/goforbroke1006/boatswain/dapp/chat/v1"
 	)
 
 	cmd := &cobra.Command{
@@ -73,17 +75,31 @@ func NewDAppChat() *cobra.Command {
 			_ = p2pPubSub
 
 			// draw the UI
-			app := chat.NewApplication(userNameArg, privateKey, publicKey, p2pPubSub)
-			_ = app
-			go func() {
-				if runErr := app.Run(ctx); runErr != nil {
-					zap.L().Fatal("app running fail", zap.Error(runErr))
-				}
-				zap.L().Debug("exit UI")
-				//stop()
-			}()
 
-			<-ctx.Done()
+			a := app.New()
+			w := a.NewWindow("Hello")
+
+			hello := widget.NewLabel("Hello Fyne!")
+			w.SetContent(container.NewVBox(
+				hello,
+				widget.NewButton("Hi!", func() {
+					hello.SetText("Welcome :)")
+				}),
+			))
+
+			w.ShowAndRun()
+
+			//app := chat.NewApplication(userNameArg, privateKey, publicKey, p2pPubSub)
+			//_ = app
+			//go func() {
+			//	if runErr := app.Run(ctx); runErr != nil && runErr != context.Canceled {
+			//		zap.L().Fatal("app running fail", zap.Error(runErr))
+			//	}
+			//	zap.L().Debug("exit UI")
+			//	stop()
+			//}()
+
+			//<-ctx.Done()
 		},
 	}
 
