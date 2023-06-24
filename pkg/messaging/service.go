@@ -1,7 +1,6 @@
 package messaging
 
 import (
-	"context"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -10,12 +9,12 @@ func New(ps *pubsub.PubSub) Service {
 
 	recvCh := make(chan Message)
 
-	go func() {
+	/*go func() {
 		topic, err := ps.Join("")
 		subscription, err := topic.Subscribe()
 		message, err := subscription.Next(context.TODO())
 		publicKey, err := message.ReceivedFrom.ExtractPublicKey()
-	}()
+	}()*/
 
 	return &service{recvCh: recvCh}
 }

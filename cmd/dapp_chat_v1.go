@@ -5,9 +5,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/spf13/cobra"
@@ -76,18 +73,18 @@ func NewDAppChat() *cobra.Command {
 
 			// draw the UI
 
-			a := app.New()
-			w := a.NewWindow("Hello")
-
-			hello := widget.NewLabel("Hello Fyne!")
-			w.SetContent(container.NewVBox(
-				hello,
-				widget.NewButton("Hi!", func() {
-					hello.SetText("Welcome :)")
-				}),
-			))
-
-			w.ShowAndRun()
+			//a := app.New()
+			//w := a.NewWindow("Hello")
+			//
+			//hello := widget.NewLabel("Hello Fyne!")
+			//w.SetContent(container.NewVBox(
+			//	hello,
+			//	widget.NewButton("Hi!", func() {
+			//		hello.SetText("Welcome :)")
+			//	}),
+			//))
+			//
+			//w.ShowAndRun()
 
 			//app := chat.NewApplication(userNameArg, privateKey, publicKey, p2pPubSub)
 			//_ = app

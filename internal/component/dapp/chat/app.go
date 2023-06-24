@@ -4,9 +4,6 @@ import (
 	"context"
 	"crypto"
 
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
@@ -43,20 +40,9 @@ type Application struct {
 // Run starts the chat event loop in the background, then starts
 // the event loop for the text UI.
 func (ui *Application) Run(ctx context.Context) error {
-	a := app.New()
-	w := a.NewWindow("Hello")
 
-	hello := widget.NewLabel("Hello Fyne!")
-	w.SetContent(container.NewVBox(
-		hello,
-		widget.NewButton("Hi!", func() {
-			hello.SetText("Welcome :)")
-		}),
-	))
-
-	w.ShowAndRun()
 	<-ctx.Done()
-	a.Quit()
+
 	return ctx.Err()
 
 	//app := tview.NewApplication()
